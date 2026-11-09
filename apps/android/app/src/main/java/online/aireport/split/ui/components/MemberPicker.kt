@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -35,6 +37,7 @@ import online.aireport.split.ui.theme.SplitTheme
  * Picks one member of the group: the label with the chosen person's highlighted name on one
  * line; tapping it opens a menu with everyone.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MemberPicker(
     label: String,
@@ -61,8 +64,13 @@ fun MemberPicker(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(label, style = MaterialTheme.typography.bodyLarge)
-            Box(Modifier.weight(1f)) {
+            // The name moves under the label when the two do not fit on one line.
+            FlowRow(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(label, style = MaterialTheme.typography.bodyLarge)
                 if (selectedPosition >= 0) {
                     PersonLabel(members[selectedPosition], selectedPosition, myMemberId)
                 }
@@ -91,16 +99,25 @@ fun MemberPicker(
     }
 }
 
-/** A person's highlighted name, with "(jij)" after it for the signed-in member. */
+/**
+ * A person's highlighted name, with "(jij)" after it for the signed-in member (under it when
+ * there is no room beside it).
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PersonLabel(member: Member, position: Int, myMemberId: String, modifier: Modifier = Modifier) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        PersonName(member.name, position, Modifier.weight(1f, fill = false))
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        PersonName(member.name, position)
         if (member.id == myMemberId) {
             Text(
                 text = stringResource(R.string.member_you_suffix),
                 style = MaterialTheme.typography.bodyMedium,
                 color = SplitTheme.colors.mutedInk,
+                maxLines = 1,
             )
         }
     }

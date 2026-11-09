@@ -219,6 +219,14 @@ button.row:hover {
   text-underline-offset: -0.2em;
 }
 
+/* Light letters are unreadable on a highlighter, so on dark paper the stroke sits below them. */
+@media (prefers-color-scheme: dark) {
+  .underline-mark {
+    text-decoration-thickness: 0.16em;
+    text-underline-offset: 0.08em;
+  }
+}
+
 .pill {
   display: inline-flex;
   align-items: center;

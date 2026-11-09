@@ -1,5 +1,6 @@
 package online.aireport.split.ui.group
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -8,14 +9,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -29,7 +34,6 @@ import online.aireport.split.core.formatSignedAmount
 import online.aireport.split.data.model.GroupDetail
 import online.aireport.split.data.model.Member
 import online.aireport.split.data.model.Transfer
-import online.aireport.split.ui.components.IconActionButton
 import online.aireport.split.ui.components.Perforation
 import online.aireport.split.ui.components.PersonLabel
 import online.aireport.split.ui.components.PersonName
@@ -133,8 +137,7 @@ private fun TransferRow(
     val receiverIban = group.member(transfer.toMemberId)?.iban
 
     Column(
-        modifier = Modifier.padding(start = ReceiptPadding, end = ReceiptPadding, top = 14.dp, bottom = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.padding(start = ReceiptPadding, end = ReceiptPadding, top = 14.dp, bottom = 8.dp),
     ) {
         Row(
             // Spoken as the sentence "Bas betaalt Anna € 3,33".
@@ -154,17 +157,27 @@ private fun TransferRow(
             Text(formatAmount(transfer.amountCents), style = MaterialTheme.typography.bodyLarge, maxLines = 1)
         }
         if (receiverIban != null) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // The whole line copies the IBAN.
+            Row(
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.small)
+                    .clickable(onClickLabel = stringResource(R.string.iban_copy), role = Role.Button) {
+                        onCopyIban(receiverIban)
+                    }
+                    .heightIn(min = 48.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
                     text = stringResource(R.string.iban_value, formatIban(receiverIban)),
-                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodyMedium,
                     color = SplitTheme.colors.mutedInk,
                 )
-                IconActionButton(
-                    icon = painterResource(R.drawable.ic_copy),
-                    contentDescription = stringResource(R.string.iban_copy),
-                    onClick = { onCopyIban(receiverIban) },
+                Icon(
+                    painter = painterResource(R.drawable.ic_copy),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = SplitTheme.colors.mutedInk,
                 )
             }
         }

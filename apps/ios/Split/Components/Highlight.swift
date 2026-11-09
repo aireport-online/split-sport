@@ -18,19 +18,28 @@ struct Highlight: View {
     }
 }
 
-/// A group's name, underlined with a thick stroke of the group's highlighter
-/// that runs behind the foot of the letters: from a little above the baseline to
-/// just below it, like the web app's underline.
+/// A group's name, underlined with a thick stroke of the group's highlighter.
+/// On light paper the stroke runs behind the foot of the letters, like the web
+/// app's underline; on dark paper light letters would be unreadable on it, so
+/// there it sits just below them.
 @MainActor
 struct GroupNameText: View {
     let name: String
     let color: GroupColor
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
+        let onDarkPaper = colorScheme == .dark
         Text(name)
             .font(.receiptTitle)
             .background {
-                HighlighterStroke(variant: name.count, top: 0.66, bottom: 0.96).fill(color.highlighterColor)
+                HighlighterStroke(
+                    variant: name.count,
+                    top: onDarkPaper ? 0.9 : 0.66,
+                    bottom: onDarkPaper ? 1.04 : 0.96
+                )
+                .fill(color.highlighterColor)
             }
     }
 }

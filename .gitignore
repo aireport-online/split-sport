@@ -7,7 +7,7 @@ dist/
 *.db
 *.db-shm
 *.db-wal
-data/
+/apps/api/data/
 .DS_Store
 .taste-skill/
 coverage/

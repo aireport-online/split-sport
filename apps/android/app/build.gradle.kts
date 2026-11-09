@@ -59,9 +59,16 @@ android {
                     "split.vectors",
                     rootProject.layout.projectDirectory.file("../../spec/split-vectors.json").asFile.absolutePath,
                 )
-                // Set SPLIT_API_URL to run the integration test against a live server.
-                test.environment("SPLIT_API_URL", providers.environmentVariable("SPLIT_API_URL").orNull ?: "")
+                // Set SPLIT_API_URL to run the integration test against a live server. Gradle does
+                // not track environment variables, so it is declared as an input; and a run against
+                // a live server depends on that server, so it is never up to date or cached.
+                val liveServerUrl = providers.environmentVariable("SPLIT_API_URL").orNull.orEmpty()
+                test.environment("SPLIT_API_URL", liveServerUrl)
+                test.inputs.property("split.liveServerUrl", liveServerUrl)
+                test.outputs.upToDateWhen { liveServerUrl.isEmpty() }
                 test.maxHeapSize = "2g"
+                // Robolectric's Android 16 runtime reaches into the JDK for shared memory.
+                test.jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED")
             }
         }
     }
@@ -70,7 +77,6 @@ android {
 dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
-    implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.foundation)
     implementation(libs.compose.material3)
     implementation(libs.androidx.core.ktx)
@@ -79,14 +85,12 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.exifinterface)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.okhttp)
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
-
-    debugImplementation(libs.compose.ui.tooling)
-    debugImplementation(libs.compose.ui.test.manifest)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
@@ -94,5 +98,4 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.compose)
-    testImplementation(libs.compose.ui.test.junit4)
 }

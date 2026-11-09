@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -115,30 +115,27 @@ private fun ExpenseRow(expense: Expense, group: GroupDetail, onClick: () -> Unit
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         ReceiptLine(name = expenseTitle(expense, group), amount = formatAmount(expense.amountCents))
+        // Who paid and when at the start, what it means for you at the end; on a narrow screen
+        // or with a large font the parts wrap onto lines of their own.
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                PersonName(
-                    name = group.memberName(expense.paidById),
-                    position = group.memberPosition(expense.paidById),
-                    modifier = Modifier.weight(1f, fill = false),
-                    style = small,
-                )
-                Text(
-                    text = stringResource(
-                        if (isSettlement) R.string.settlement_paid_on else R.string.expense_paid_on,
-                        date,
-                    ),
-                    style = small,
-                    color = muted,
-                    maxLines = 1,
-                )
-            }
+            PersonName(
+                name = group.memberName(expense.paidById),
+                position = group.memberPosition(expense.paidById),
+                style = small,
+            )
+            Text(
+                text = stringResource(if (isSettlement) R.string.settlement_paid_on else R.string.expense_paid_on, date),
+                style = small,
+                color = muted,
+                maxLines = 1,
+            )
+            Spacer(Modifier.weight(1f))
             if (isSettlement) {
-                Stamp(stringResource(R.string.stamp_paid), Modifier.padding(start = 8.dp, top = 2.dp, bottom = 2.dp))
+                Stamp(stringResource(R.string.stamp_paid), Modifier.padding(vertical = 2.dp))
             } else {
                 expense.effectFor(group.myMemberId)?.let { effect ->
                     Text(

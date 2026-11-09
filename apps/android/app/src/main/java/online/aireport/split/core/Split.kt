@@ -11,26 +11,17 @@ package online.aireport.split.core
 const val MAX_AMOUNT_CENTS = 99_999_999L
 const val MAX_WEIGHT = 1_000_000
 
+/** The four ways an expense can be split, in the order the form offers them. */
 enum class SplitMode { EQUAL, EXACT, SHARES, ITEMS }
 
 sealed interface Split {
-    val mode: SplitMode
+    data class Equal(val memberIds: List<String>) : Split
 
-    data class Equal(val memberIds: List<String>) : Split {
-        override val mode get() = SplitMode.EQUAL
-    }
+    data class Exact(val amounts: List<Share>) : Split
 
-    data class Exact(val amounts: List<Share>) : Split {
-        override val mode get() = SplitMode.EXACT
-    }
+    data class Shares(val weights: List<Weight>) : Split
 
-    data class Shares(val weights: List<Weight>) : Split {
-        override val mode get() = SplitMode.SHARES
-    }
-
-    data class Items(val items: List<SplitItem>) : Split {
-        override val mode get() = SplitMode.ITEMS
-    }
+    data class Items(val items: List<SplitItem>) : Split
 }
 
 data class Share(val memberId: String, val amountCents: Long)

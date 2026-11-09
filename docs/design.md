@@ -129,7 +129,8 @@ Month headings on a receipt are uppercase mono ("NOVEMBER 2026"), not letter-spa
 - **Highlighter.** A person is never an avatar: a person is their name with their highlighter
   swiped behind it. The stroke is a little taller than the lowercase letters, sticks out about 6 px
   left and right, has slightly uneven ends and is tilted about −1°. A group's name in a list is
-  underlined with a thick stroke (the lower 40 % of the text) in the group's colour. On a receipt
+  underlined with a thick stroke (the lower 40 % of the text) in the group's colour; in the dark
+  theme, where light letters would be unreadable on it, the stroke sits just below the letters. On a receipt
   split "per regel", each line is swiped with the colours of the people who had it; shared by
   several people, the stroke is divided into equal parts left to right, in member order.
 - **Person chips** (to say who had a receipt line): the name in Barlow Condensed on a filled pill in

@@ -10,13 +10,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import online.aireport.split.data.model.GroupColor
@@ -33,18 +37,15 @@ private const val TILT_DEGREES = -1f
 fun Modifier.highlighter(color: Color, seed: Int): Modifier = drawBehind {
     val top = size.height * 0.08f
     val bottom = size.height * 0.94f
-    val middle = (top + bottom) / 2
     val unevenness = 2.5.dp.toPx()
-    // Six stable pseudo-random offsets between 0 and `unevenness`.
+    // Four stable pseudo-random offsets between 0 and `unevenness`, one per corner.
     val mixed = seed * -0x61c88647
-    fun offset(index: Int): Float = ((mixed ushr (index * 5)) and 0x1f) / 31f * unevenness
+    fun offset(corner: Int): Float = ((mixed ushr (corner * 7)) and 0x7f) / 127f * unevenness
     val stroke = Path().apply {
-        moveTo(offset(0), top + offset(1) / 2)
-        lineTo(size.width - offset(2), top)
-        lineTo(size.width, middle)
-        lineTo(size.width - offset(3), bottom - offset(4) / 2)
-        lineTo(offset(5), bottom)
-        lineTo(0f, middle + offset(1) / 2)
+        moveTo(offset(0), top)
+        lineTo(size.width - offset(1), top)
+        lineTo(size.width - offset(2), bottom)
+        lineTo(offset(3), bottom)
         close()
     }
     rotate(TILT_DEGREES) { drawPath(stroke, color) }
@@ -76,8 +77,9 @@ fun PersonName(
 }
 
 /**
- * A group's name, underlined with a thick stroke of the group's highlighter that runs behind
- * the lower part of the letters.
+ * A group's name, underlined with a thick stroke of the group's highlighter. On light paper
+ * the stroke runs behind the lower part of the letters; on dark paper light letters would
+ * be unreadable on it, so there it sits just below them.
  */
 @Composable
 fun GroupName(
@@ -87,21 +89,30 @@ fun GroupName(
     style: TextStyle = MaterialTheme.typography.titleLarge,
     maxLines: Int = 2,
 ) {
-    val highlighter = SplitTheme.colors.highlighter(color)
+    val colors = SplitTheme.colors
+    val highlighter = colors.highlighter(color)
+    val darkPaper = colors.paper.luminance() < 0.5f
     var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
     Text(
         text = name,
-        modifier = modifier.drawBehind {
-            val textLayout = layout ?: return@drawBehind
+        modifier = modifier.drawWithContent {
+            drawContent()
+            val textLayout = layout ?: return@drawWithContent
             val em = style.fontSize.toPx()
             for (line in 0 until textLayout.lineCount) {
+                val baseline = textLayout.getLineBaseline(line)
                 val left = textLayout.getLineLeft(line)
                 val right = textLayout.getLineRight(line)
-                drawRect(
-                    color = highlighter,
-                    topLeft = Offset(left, textLayout.getLineBaseline(line) - 0.24f * em),
-                    size = Size(right - left, 0.34f * em),
-                )
+                if (darkPaper) {
+                    val top = baseline + 0.06f * em
+                    drawRect(highlighter, topLeft = Offset(left, top), size = Size(right - left, 0.16f * em))
+                } else {
+                    val top = baseline - 0.24f * em
+                    clipRect(left, top, right, top + 0.34f * em) {
+                        drawRect(highlighter)
+                        drawText(textLayout, color = colors.onHighlighter)
+                    }
+                }
             }
         },
         style = style,

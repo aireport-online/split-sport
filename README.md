@@ -18,7 +18,14 @@ The interface is Dutch. The house style ("Kassabon": receipt paper, till numeral
 per person) and the screens are described in [`docs/design.md`](docs/design.md), the REST API in
 [`docs/api.md`](docs/api.md).
 
-![The web app](docs/design/v2/kassabon-web.jpg)
+![The web app](docs/screenshots/web-group.jpg)
+
+<p>
+  <img src="docs/screenshots/android-groups.jpg" width="24%" alt="Android: groups">
+  <img src="docs/screenshots/android-group-expenses.jpg" width="24%" alt="Android: expenses">
+  <img src="docs/screenshots/android-group-balances.jpg" width="24%" alt="Android: balances">
+  <img src="docs/screenshots/android-expense-per-line.jpg" width="24%" alt="Android: an expense split per receipt line">
+</p>
 
 ## Run it
 

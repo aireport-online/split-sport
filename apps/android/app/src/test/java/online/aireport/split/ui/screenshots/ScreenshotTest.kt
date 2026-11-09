@@ -31,6 +31,7 @@ import online.aireport.split.ui.theme.SplitTheme
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -83,6 +84,20 @@ class ScreenshotTest {
     @Test
     fun join() = capture("join") { Join() }
 
+    @Test
+    @Config(qualifiers = "w360dp-h1700dp-420dpi")
+    fun expenseOnASmallPhoneWithTheLargestFont() {
+        RuntimeEnvironment.setFontScale(2f)
+        capture("expense-font-scale-2") { Expense(SampleData.equalDraft) }
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h1200dp-420dpi")
+    fun groupOnASmallPhoneWithTheLargestFont() {
+        RuntimeEnvironment.setFontScale(2f)
+        capture("group-font-scale-2") { Group(GroupTab.EXPENSES) }
+    }
+
     private fun capture(name: String, dark: Boolean = false, content: @Composable () -> Unit) {
         captureRoboImage("build/outputs/roborazzi/$name.png") {
             SplitTheme(darkTheme = dark) {
@@ -94,7 +109,7 @@ class ScreenshotTest {
     @Composable
     private fun Login() {
         AuthScreen(
-            state = AuthUiState(email = "sanne@example.nl", serverUrl = "https://split.example.org"),
+            state = AuthUiState(email = "sanne@example.nl", password = "geheim-wachtwoord", serverUrl = "https://split.example.org"),
             onModeChange = {},
             onNameChange = {},
             onEmailChange = {},

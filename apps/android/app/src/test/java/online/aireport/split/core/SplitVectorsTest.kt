@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 import online.aireport.split.data.api.SplitJson
 import online.aireport.split.data.model.AmountDto
 import online.aireport.split.data.model.SplitDto
-import online.aireport.split.data.model.toDomain
+import online.aireport.split.data.model.SplitModeDto
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -42,6 +42,14 @@ class SplitVectorsTest(private val case: VectorCase) {
 
     @Serializable
     private class VectorFile(val cases: List<VectorCase>)
+
+    /** The vectors describe a split the way the API takes it. */
+    private fun SplitDto.toDomain(): Split = when (mode) {
+        SplitModeDto.EQUAL -> Split.Equal(memberIds.orEmpty())
+        SplitModeDto.EXACT -> Split.Exact(amounts.orEmpty().map { Share(it.memberId, it.amountCents) })
+        SplitModeDto.SHARES -> Split.Shares(weights.orEmpty().map { Weight(it.memberId, it.weight) })
+        SplitModeDto.ITEMS -> Split.Items(items.orEmpty().map { SplitItem(it.name, it.amountCents, it.memberIds) })
+    }
 
     companion object {
         @JvmStatic
