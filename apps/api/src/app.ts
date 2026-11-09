@@ -1,5 +1,5 @@
 import { serveStatic } from "@hono/node-server/serve-static";
-import { SplitError, type AuthResponse, type InvitePreview, type ServerConfig } from "@split/core";
+import { SplitError, splitErrorMessages, type AuthResponse, type InvitePreview, type ServerConfig } from "@split/core";
 import { Hono, type Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import { createSession, hashPassword, newId, requireAuth, verifyPassword, type AppEnv, type UserRow } from "./auth";
 import type { Db } from "./db";
-import { HttpError, splitErrorMessages } from "./errors";
+import { HttpError } from "./errors";
 import { clientIp, rateLimit } from "./rate-limit";
 import type { ReceiptScanner } from "./receipts";
 import {
@@ -276,7 +276,10 @@ export function createApp(options: AppOptions): Hono<AppEnv> {
     },
   );
 
-  api.notFound((c) => c.json({ error: { code: "not_found", message: "Niet gevonden." } }, 404));
+  // Unknown API paths must answer JSON, never fall through to the web app below.
+  api.all("*", () => {
+    throw new HttpError(404, "not_found", "Niet gevonden.");
+  });
 
   api.onError((error, c) => {
     if (error instanceof HttpError) {

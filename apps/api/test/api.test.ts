@@ -436,6 +436,14 @@ describe("receipt scanning", () => {
   });
 });
 
+describe("routing", () => {
+  it("answers unknown API paths with a JSON 404", async () => {
+    const unknown = await call<{ error: { code: string } }>("GET", "/bestaat-niet");
+    expect(unknown.status).toBe(404);
+    expect(unknown.data.error.code).toBe("not_found");
+  });
+});
+
 describe("rate limiting", () => {
   it("slows down repeated login attempts", async () => {
     const limited = createApp({ db: openDatabase(":memory:"), receiptScanner: null });

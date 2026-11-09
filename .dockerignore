@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/.git
+.git
+apps/android
+apps/ios
+docs
+*.db
+data
+.env
+.env.*
+.taste-skill

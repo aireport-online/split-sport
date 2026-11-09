@@ -1,0 +1,143 @@
+/* Tokens: the "pastel consumer" style from docs/design.md. */
+:root {
+  --ground: #f3f5f7;
+  --surface: #ffffff;
+  --raised: #f2f8fd;
+  --border: #e6e6e6;
+  --rule: #f0f1f3;
+  --control: #d6d9dd;
+  --text: #1b1d1f;
+  --muted: #5c6064;
+  --accent: #1d5fd6;
+  --accent-hover: #184fb4;
+  --accent-soft: #dcf1ff;
+  --accent-ink: #0a3a80;
+  --positive: #2f7a45;
+  --negative: #c41c29;
+  --neutral-bg: #eef1f4;
+  --neutral-bg-hover: #e3e7eb;
+  --neutral-ink: #3a3d40;
+  --negative-bg: #ffedea;
+  --negative-ink: #831c1e;
+
+  --radius-card: 20px;
+  --radius-control: 10px;
+  --radius-small: 8px;
+  --row-height: 72px;
+  --sidebar-width: 240px;
+  --gap: 24px;
+  --pad: 24px;
+  --control-height: 40px;
+
+  --fs-title: 28px;
+  --fs-section: 20px;
+  --fs-figure: 32px;
+  --fs-body: 16px;
+  --fs-small: 14px;
+
+  --font: "Manrope Variable", Manrope, Inter, system-ui, sans-serif;
+}
+
+/* Tints for group tiles and member avatars. */
+[data-tint="blue"] { --tint-bg: #dcf1ff; --tint-ink: #0a3a80; }
+[data-tint="amber"] { --tint-bg: #fff1cf; --tint-ink: #7a3e00; }
+[data-tint="teal"] { --tint-bg: #d5f3f1; --tint-ink: #0b4f4a; }
+[data-tint="rose"] { --tint-bg: #ffe1ec; --tint-ink: #8a1846; }
+[data-tint="green"] { --tint-bg: #dcfae5; --tint-ink: #0b4a22; }
+[data-tint="coral"] { --tint-bg: #ffe4dc; --tint-ink: #8a2b12; }
+[data-tint="lime"] { --tint-bg: #ecf6cc; --tint-ink: #3f5200; }
+[data-tint="slate"] { --tint-bg: #e9edf2; --tint-ink: #2f3a46; }
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: var(--fs-title);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: var(--fs-section);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: var(--fs-small);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .button,
+  .nav-item,
+  .row,
+  .chip {
+    transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+  }
+}
