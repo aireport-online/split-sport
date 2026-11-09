@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The app icon: a receipt with its zigzag tear, a perforation and one highlighter stroke.
+  docs/design/v2/icon.svg scaled by 0.08 and centred, so the receipt and its perforation stay
+  inside the 66 dp safe zone of the 108 dp adaptive icon canvas. Vector drawables cannot dash a
+  stroke, so the dashes of the perforation are drawn as separate bars.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.08"
+        android:scaleY="0.08"
+        android:translateX="13.04"
+        android:translateY="13.04">
+        <path
+            android:fillColor="#FBF8F1"
+            android:pathData="M272,176 H752 V800 L728,824 L704,800 L680,824 L656,800 L632,824 L608,800 L584,824 L560,800 L536,824 L512,800 L488,824 L464,800 L440,824 L416,800 L392,824 L368,800 L344,824 L320,800 L296,824 L272,800 Z" />
+        <path
+            android:fillColor="#FFF04A"
+            android:pathData="M300,420 L724,404 L730,488 L296,506 Z" />
+        <path
+            android:fillColor="#141414"
+            android:pathData="M340,268 h142 a4,4 0 0 1 4,4 v26 a4,4 0 0 1 -4,4 h-142 a4,4 0 0 1 -4,-4 v-26 a4,4 0 0 1 4,-4 z M340,438 h112 a4,4 0 0 1 4,4 v22 a4,4 0 0 1 -4,4 h-112 a4,4 0 0 1 -4,-4 v-22 a4,4 0 0 1 4,-4 z M574,438 h110 a4,4 0 0 1 4,4 v22 a4,4 0 0 1 -4,4 h-110 a4,4 0 0 1 -4,-4 v-22 a4,4 0 0 1 4,-4 z M340,590 h88 a4,4 0 0 1 4,4 v22 a4,4 0 0 1 -4,4 h-88 a4,4 0 0 1 -4,-4 v-22 a4,4 0 0 1 4,-4 z M574,590 h110 a4,4 0 0 1 4,4 v22 a4,4 0 0 1 -4,4 h-110 a4,4 0 0 1 -4,-4 v-22 a4,4 0 0 1 4,-4 z M574,690 h110 a4,4 0 0 1 4,4 v30 a4,4 0 0 1 -4,4 h-110 a4,4 0 0 1 -4,-4 v-30 a4,4 0 0 1 4,-4 z" />
+        <path
+            android:fillColor="#141414"
+            android:pathData="M505,188 h14 V222 h-14 z M505,248 h14 V282 h-14 z M505,308 h14 V342 h-14 z M505,368 h14 V402 h-14 z M505,428 h14 V462 h-14 z M505,488 h14 V522 h-14 z M505,548 h14 V582 h-14 z M505,608 h14 V642 h-14 z M505,668 h14 V702 h-14 z M505,728 h14 V762 h-14 z M505,788 h14 V822 h-14 z" />
+        <path
+            android:fillColor="#FBF8F1"
+            android:pathData="M505,128 h14 V162 h-14 z M505,824 h14 V858 h-14 z M505,884 h14 V896 h-14 z" />
+    </group>
+</vector>

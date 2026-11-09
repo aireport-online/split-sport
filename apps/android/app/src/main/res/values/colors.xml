@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The page ground, for the window before Compose draws. Keep in sync with ui/theme/Color.kt. -->
+    <color name="desk">#E8E5DE</color>
+    <color name="ic_launcher_background">#141414</color>
+</resources>

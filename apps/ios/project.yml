@@ -1,0 +1,79 @@
+# XcodeGen spec for the Split iOS app. Generate the Xcode project on a Mac with:
+#   brew install xcodegen && xcodegen
+# Split.xcodeproj and Split/Info.plist are generated; do not edit or commit them.
+name: Split
+
+options:
+  bundleIdPrefix: online.aireport
+  deploymentTarget:
+    iOS: "17.0"
+  # The interface is Dutch, written as plain string literals.
+  developmentLanguage: nl
+  createIntermediateGroups: true
+
+settings:
+  base:
+    # Swift 5 language mode: strict-concurrency findings stay warnings.
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+packages:
+  SplitKit:
+    path: SplitKit
+
+targets:
+  Split:
+    type: application
+    platform: iOS
+    sources:
+      - path: Split
+    dependencies:
+      - package: SplitKit
+    info:
+      path: Split/Info.plist
+      properties:
+        CFBundleDisplayName: Split
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSCameraUsageDescription: Split gebruikt de camera om een foto van een bon te maken, zodat de regels automatisch worden ingevuld.
+        NSPhotoLibraryUsageDescription: Split gebruikt je foto's om een foto van een bon te kiezen, zodat de regels automatisch worden ingevuld.
+        # Lets a development server on localhost or the local network be reached over http.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        # split://join/<code> opens the "Deelnemen" screen.
+        CFBundleURLTypes:
+          - CFBundleTypeRole: Viewer
+            CFBundleURLName: online.aireport.split
+            CFBundleURLSchemes:
+              - split
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: online.aireport.split
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+      configs:
+        Debug:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+
+schemes:
+  Split:
+    build:
+      targets:
+        Split: all
+    run:
+      config: Debug
+    archive:
+      config: Release

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Only what shows before Compose draws its first frame; the real theme is SplitTheme. -->
+    <style name="Theme.Split" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/desk</item>
+    </style>
+</resources>
