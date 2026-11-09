@@ -108,7 +108,7 @@ export function SettlementDialog({
       <div className="field-row" style={{ marginTop: 16 }}>
         <Field label="Bedrag">
           <input
-            className="input input--amount"
+            className="input"
             inputMode="decimal"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}

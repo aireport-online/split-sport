@@ -32,7 +32,8 @@ Expense      { id, groupId, kind: "expense" | "settlement", description, amountC
                createdAt, updatedAt }
 ```
 
-`color` is one of `blue`, `amber`, `teal`, `rose`, `green`, `coral`, `lime`, `slate` (see `docs/design.md`).
+`color` is one of `amber`, `rose`, `green`, `coral`, `blue`, `lime`, `teal`, `slate`: the eight
+highlighters of the house style (see `docs/design.md`).
 
 A split is sent as one of:
 

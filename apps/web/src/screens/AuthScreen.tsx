@@ -1,8 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, Navigate, useLocation } from "react-router";
-import { BrandMark } from "../components/Shell";
-import { Button, ErrorBanner, Field } from "../components/ui";
+import { Button, ErrorBanner, Field, Wordmark } from "../components/ui";
 import { api, errorMessage } from "../lib/api";
 import { useSession } from "../lib/session";
 
@@ -26,16 +25,12 @@ export function AuthScreen({ mode }: { mode: "login" | "register" }) {
 
   return (
     <main className="auth">
-      <div className="card auth__card">
-        <div className="brand" style={{ padding: 0 }}>
-          <BrandMark />
-          Split
-        </div>
+      <div className="auth__inner">
+        <Wordmark size="large" />
+        <div className="card auth__card">
         <h1>{register ? "Account maken" : "Inloggen"}</h1>
-        <p className="muted">
-          {register
-            ? "Houd met je groep bij wie wat betaald heeft."
-            : "Bekijk je groepen en wat er nog openstaat."}
+        <p className="muted small" style={{ marginTop: 4 }}>
+          {register ? "Houd met je groep bij wie wat betaald heeft." : "Bekijk je groepen en wat er nog openstaat."}
         </p>
         <form
           noValidate
@@ -80,10 +75,11 @@ export function AuthScreen({ mode }: { mode: "login" | "register" }) {
           <div style={{ marginTop: 16 }}>
             <ErrorBanner message={submit.error ? errorMessage(submit.error) : null} />
           </div>
-          <Button variant="primary" type="submit" block disabled={submit.isPending} style={{ marginTop: 16 }}>
+          <Button variant="primary" type="submit" block disabled={submit.isPending} style={{ marginTop: 20 }}>
             {register ? "Account maken" : "Inloggen"}
           </Button>
         </form>
+        </div>
         <p className="auth__switch">
           {register ? "Heb je al een account? " : "Nog geen account? "}
           <Link className="link" to={register ? "/login" : "/register"} state={location.state}>

@@ -1,7 +1,7 @@
 # One image with the API and the web app. Data lives in the /data volume.
 FROM node:22-slim AS build
 WORKDIR /app
-RUN corepack enable
+RUN npm install -g pnpm@10.28.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/core/package.json packages/core/
 COPY apps/api/package.json apps/api/

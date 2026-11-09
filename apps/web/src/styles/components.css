@@ -6,56 +6,63 @@
   justify-content: center;
   gap: 8px;
   min-height: var(--control-height);
-  padding: 0 16px;
-  border: 0;
-  border-radius: var(--radius-control);
-  background: var(--neutral-bg);
-  color: var(--text);
-  font-size: var(--fs-small);
-  font-weight: 600;
+  padding: 0 18px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   white-space: nowrap;
 }
 
-.button:hover {
-  background: var(--neutral-bg-hover);
+.button:hover:not(:disabled) {
+  background: var(--hover);
 }
 
 .button:disabled {
   cursor: default;
-  opacity: 0.55;
+  opacity: 0.45;
 }
 
 .button--primary {
-  background: var(--accent);
-  color: #fff;
+  background: var(--ink);
+  color: var(--on-ink);
 }
 
 .button--primary:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: #2c2b29;
 }
 
 .button--ghost {
-  background: transparent;
+  border-color: transparent;
 }
 
 .button--danger {
-  background: var(--negative-bg);
-  color: var(--negative-ink);
+  border-color: var(--stamp);
+  color: var(--stamp);
 }
 
-.button--danger:hover {
-  background: #ffdcd6;
+.button--danger:hover:not(:disabled) {
+  background: rgb(208 52 44 / 0.08);
 }
 
 .button--small {
   min-height: 32px;
-  padding: 0 12px;
-  border-radius: var(--radius-small);
+  padding: 0 10px;
+  font-size: 15px;
 }
 
 .button--icon {
   width: var(--control-height);
   padding: 0;
+}
+
+.button--small.button--icon,
+.stepper .button {
+  width: 32px;
 }
 
 .button--block {
@@ -66,20 +73,29 @@
   padding: 0;
   border: 0;
   background: none;
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.link:hover {
+  color: var(--ink);
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-/* ---- cards and rows ---------------------------------------------------- */
+/* ---- receipt: paper with a zigzag tear at the bottom ------------------- */
 
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
+  position: relative;
+  margin-bottom: calc(var(--tooth) / 2);
+  border-radius: 2px 2px 0 0;
+  background: var(--paper);
+}
+
+.card::after {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  height: calc(var(--tooth) / 2);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='6'%3E%3Cpath d='M0 0h12L6 6z' fill='%23fbf8f1'/%3E%3C/svg%3E")
+    repeat-x left top / var(--tooth) calc(var(--tooth) / 2);
+  content: "";
 }
 
 .card__header {
@@ -87,157 +103,165 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px var(--pad) 8px;
+  padding: 20px var(--pad) 6px;
 }
 
 .card__body {
   padding: var(--pad);
 }
 
-.card__footer {
-  padding: 16px var(--pad) 20px;
+/* A dashed tear line between two parts of one receipt. */
+.perforation {
+  margin: 4px var(--pad);
+  border: 0;
+  border-top: var(--dash);
 }
 
 .rows {
   margin: 0;
-  padding: 0 0 8px;
+  padding: 0 0 10px;
   list-style: none;
 }
 
 .row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+  display: block;
   width: 100%;
-  min-height: var(--row-height);
-  padding: 12px var(--pad);
+  padding: 9px var(--pad);
   border: 0;
   background: none;
   text-align: left;
 }
 
-.rows > li + li .row,
-.rows > li + li.row {
-  border-top: 1px solid var(--rule);
-}
-
 a.row:hover,
 button.row:hover {
-  background: #fafbfc;
+  background: var(--hover);
 }
 
-.row__main {
-  flex: 1;
+/* "name ........ amount" */
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.line__name {
   min-width: 0;
-}
-
-.row__title {
-  display: block;
   overflow: hidden;
-  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.row__sub {
-  display: block;
-  overflow: hidden;
+.leader {
+  flex: 1;
+  min-width: 16px;
+  height: 0;
+  border-bottom: 2px dotted var(--perforation);
+  transform: translateY(-3px);
+}
+
+.line__amount {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.line--sub {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-top: 3px;
   color: var(--muted);
   font-size: var(--fs-small);
-  text-overflow: ellipsis;
+}
+
+.line--sub > * {
   white-space: nowrap;
 }
 
-.row__end {
-  flex-shrink: 0;
-  text-align: right;
+.line--sub > :last-child:not(:first-child) {
+  margin-left: auto;
 }
 
 .rows__heading {
-  padding: 16px var(--pad) 4px;
-  color: var(--muted);
-  font-size: 13px;
+  padding: 14px var(--pad) 2px;
+  font-size: var(--fs-small);
+  text-transform: uppercase;
 }
 
-/* ---- identity: tiles, avatars, pills ----------------------------------- */
+/* ---- highlighter ------------------------------------------------------- */
 
-.tile,
-.avatar {
-  display: inline-grid;
-  flex-shrink: 0;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  background: var(--tint-bg);
-  color: var(--tint-ink);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+/* A name with its highlighter swiped behind it. */
+.mark {
+  position: relative;
+  display: inline-block;
+  padding: 0 6px;
+  color: #141414;
+  white-space: nowrap;
+  isolation: isolate;
 }
 
-.tile {
-  border-radius: 12px;
+.mark::before {
+  position: absolute;
+  inset: 0.06em 0 0.02em;
+  z-index: -1;
+  border-radius: 2px;
+  background: var(--hl);
+  content: "";
+  filter: url(#marker-edge);
+  transform: rotate(-0.8deg);
 }
 
-.avatar {
-  border-radius: 50%;
-}
-
-.tile--small,
-.avatar--small {
-  width: 28px;
-  height: 28px;
-  font-size: 11px;
-}
-
-.tile--small {
-  border-radius: var(--radius-small);
-}
-
-.tile--large {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  font-size: 19px;
+/* A group name underlined with a thick stroke that runs behind the letters. */
+.underline-mark {
+  text-decoration: underline var(--hl) 0.34em;
+  text-decoration-skip-ink: none;
+  text-underline-offset: -0.2em;
 }
 
 .pill {
   display: inline-flex;
   align-items: center;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 11px;
-  background: var(--neutral-bg);
-  color: var(--neutral-ink);
+  padding: 0 6px;
+  border: 1px dashed var(--perforation);
+  border-radius: 3px;
+  color: var(--muted);
   font-size: 12px;
-  font-weight: 500;
   white-space: nowrap;
+}
+
+.stamp {
+  display: inline-block;
+  padding: 0 7px;
+  border: 2px solid var(--stamp);
+  border-radius: 3px;
+  color: var(--stamp);
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.9;
+  transform: rotate(-8deg);
 }
 
 /* ---- money ------------------------------------------------------------- */
 
 .amount {
-  font-weight: 600;
   white-space: nowrap;
-}
-
-.amount--positive {
-  color: var(--positive);
 }
 
 .amount--zero {
   color: var(--muted);
-  font-weight: 500;
 }
 
 .figure {
   font-size: var(--fs-figure);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.15;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
-/* ---- forms ------------------------------------------------------------- */
+/* ---- forms: no boxes, a perforation under the value -------------------- */
 
 .field {
   display: block;
@@ -246,57 +270,78 @@ button.row:hover {
 .field + .field,
 .field-row + .field,
 .field + .field-row {
-  margin-top: 16px;
+  margin-top: 18px;
 }
 
 .field__label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
+  color: var(--muted);
   font-size: var(--fs-small);
-  font-weight: 500;
 }
 
 .field__hint {
   display: block;
   margin-top: 6px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .input,
 .select {
   display: block;
   width: 100%;
-  height: var(--control-height);
-  padding: 0 12px;
-  border: 1px solid var(--control);
-  border-radius: var(--radius-control);
-  background: var(--surface);
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-bottom: var(--dash);
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+}
+
+.select {
+  appearance: none;
+  padding-right: 24px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23141414' stroke-width='1.8'/%3E%3C/svg%3E")
+    no-repeat right 4px center;
 }
 
 .input::placeholder {
-  color: #8b9095;
+  color: #9a958a;
+}
+
+.input:hover,
+.select:hover {
+  border-bottom-color: var(--muted);
 }
 
 .input:focus-visible,
 .select:focus-visible {
-  border-color: var(--accent);
-  outline-offset: 0;
+  border-bottom: 1.5px solid var(--ink);
 }
 
 .input--amount {
   text-align: right;
 }
 
-.input:read-only {
-  background: var(--neutral-bg);
+.input--figure {
+  height: 48px;
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.input:read-only,
+.select:disabled {
   color: var(--muted);
+  opacity: 1;
 }
 
 .field-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 20px;
 }
 
 .field-row > .field {
@@ -307,83 +352,89 @@ button.row:hover {
   display: grid;
   grid-auto-columns: 1fr;
   grid-auto-flow: column;
-  gap: 2px;
-  padding: 3px;
-  border-radius: var(--radius-control);
-  background: var(--neutral-bg);
+  overflow: hidden;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius);
 }
 
 .segmented__option {
-  min-height: 34px;
-  padding: 0 8px;
+  min-height: 38px;
+  padding: 0 6px;
   border: 0;
-  border-radius: 7px;
   background: none;
-  color: var(--muted);
-  font-size: var(--fs-small);
-  font-weight: 500;
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 700;
 }
 
-.segmented__option[aria-pressed="true"],
-.segmented__option[aria-selected="true"] {
-  background: var(--surface);
-  color: var(--text);
-  font-weight: 600;
+.segmented__option + .segmented__option {
+  border-left: 1.5px solid var(--ink);
+}
+
+.segmented__option[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--on-ink);
 }
 
 .checkbox {
+  display: grid;
+  flex-shrink: 0;
+  place-content: center;
   width: 20px;
   height: 20px;
   margin: 0;
-  accent-color: var(--accent);
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.checkbox:checked {
+  background: var(--ink)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%23fbf8f1' stroke-width='2'/%3E%3C/svg%3E")
+    center / 14px no-repeat;
 }
 
 .stepper {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .stepper__value {
   min-width: 28px;
-  font-weight: 600;
   text-align: center;
 }
 
 .stepper .button {
-  width: 32px;
   min-height: 32px;
   padding: 0;
 }
 
+/* Who had this receipt line: a filled pill in the person's colour, dashed when not. */
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   min-height: 32px;
-  padding: 0 12px 0 4px;
-  border: 1px solid var(--border);
+  padding: 0 12px;
+  border: 1.5px dashed var(--perforation);
   border-radius: 16px;
-  background: var(--surface);
+  background: transparent;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 500;
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .chip[aria-pressed="true"] {
-  border-color: var(--tint-ink);
-  background: var(--tint-bg);
-  color: var(--tint-ink);
-}
-
-.chip--plain {
-  padding: 0 12px;
+  border: 1.5px solid var(--hl, var(--ink));
+  background: var(--hl, var(--ink));
+  color: #141414;
 }
 
 .chip--plain[aria-pressed="true"] {
-  border-color: var(--text);
-  background: var(--text);
-  color: #fff;
+  color: var(--on-ink);
 }
 
 .chips {
@@ -395,31 +446,32 @@ button.row:hover {
 /* ---- feedback ---------------------------------------------------------- */
 
 .banner {
-  padding: 10px 14px;
-  border-radius: var(--radius-control);
-  background: var(--negative-bg);
-  color: var(--negative-ink);
+  padding: 8px 12px;
+  border: 1.5px solid var(--stamp);
+  border-radius: var(--radius);
+  color: var(--stamp);
   font-size: var(--fs-small);
-  font-weight: 500;
 }
 
 .banner--note {
-  background: var(--neutral-bg);
-  color: var(--neutral-ink);
+  border: var(--dash);
+  color: var(--muted);
 }
 
 .empty {
-  padding: 40px var(--pad) 44px;
+  padding: 36px var(--pad) 40px;
   text-align: center;
 }
 
 .empty__title {
-  font-weight: 600;
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
 }
 
 .empty__text {
   max-width: 44ch;
-  margin: 4px auto 0;
+  margin: 6px auto 0;
   color: var(--muted);
 }
 
@@ -432,8 +484,10 @@ button.row:hover {
 }
 
 .skeleton {
-  border-radius: var(--radius-small);
-  background: var(--neutral-bg);
+  display: block;
+  height: 12px;
+  border-radius: 2px;
+  background: rgb(20 20 20 / 0.08);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -444,21 +498,20 @@ button.row:hover {
 
 @keyframes pulse {
   50% {
-    opacity: 0.5;
+    opacity: 0.45;
   }
 }
 
-/* ---- dialog ------------------------------------------------------------ */
+/* ---- dialog: a sheet of paper over the desk ---------------------------- */
 
 .dialog {
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100dvh - 48px);
   padding: 0;
   border: 0;
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 24px 64px rgb(15 23 42 / 0.18);
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--ink);
 }
 
 .dialog--narrow {
@@ -466,7 +519,7 @@ button.row:hover {
 }
 
 .dialog::backdrop {
-  background: rgb(15 20 25 / 0.4);
+  background: rgb(20 20 20 / 0.55);
 }
 
 .dialog__form {
@@ -480,24 +533,31 @@ button.row:hover {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px var(--pad) 12px;
+  margin: 0 var(--pad);
+  padding: 18px 0 12px;
+  border-bottom: var(--dash);
+}
+
+.dialog__header h2 {
+  font-size: 28px;
 }
 
 .dialog__body {
   flex: 1;
   overflow-y: auto;
-  padding: 4px var(--pad) var(--pad);
+  padding: 18px var(--pad) var(--pad);
 }
 
 .dialog__footer {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 16px var(--pad);
-  border-top: 1px solid var(--rule);
+  margin: 0 var(--pad);
+  padding: 16px 0;
+  border-top: var(--dash);
 }
 
-.dialog__footer .spacer {
+.spacer {
   flex: 1;
 }
 
@@ -509,7 +569,6 @@ button.row:hover {
     height: 100dvh;
     max-height: none;
     margin: 0;
-    border-radius: 0;
   }
 
   .dialog__form {

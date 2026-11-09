@@ -35,10 +35,10 @@ export interface Member {
 }
 
 /**
- * Groups have no picture; every client draws a tile in one of these tints
- * with the group's initials. Members get a tint by their position in the group.
+ * The eight highlighter colours of the house style (see docs/design.md). A
+ * group stores one; a member's colour is their position in the group, in this order.
  */
-export const GROUP_COLORS = ["blue", "amber", "teal", "rose", "green", "coral", "lime", "slate"] as const;
+export const GROUP_COLORS = ["amber", "rose", "green", "coral", "blue", "lime", "teal", "slate"] as const;
 export type GroupColor = (typeof GROUP_COLORS)[number];
 
 export interface GroupSummary {

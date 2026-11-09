@@ -4,6 +4,17 @@ import { GROUP_COLORS, formatCents, type GroupColor, type Member } from "@split/
 export const money = (cents: number, currency = "EUR"): string =>
   formatCents(Math.abs(cents), currency).replace(/ /g, " ");
 
+const plainFormat = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** An amount as a till prints it, without currency sign: "1.234,56". */
+export const plain = (cents: number): string => plainFormat.format(Math.abs(cents) / 100);
+
+/** A balance on a receipt line: "+ 24,95", "− 21,60" or "0,00". */
+export function signedPlain(cents: number): string {
+  if (cents === 0) return plain(0);
+  return `${cents > 0 ? "+" : "−"} ${plain(cents)}`;
+}
+
 /** A balance with its sign: "+ € 12,50", "− € 8,00" or "€ 0,00". */
 export function signedMoney(cents: number, currency = "EUR"): string {
   if (cents === 0) return money(0, currency);
@@ -22,16 +33,7 @@ export function myBalanceSentence(cents: number, currency = "EUR"): string {
   return cents > 0 ? `Je krijgt ${money(cents, currency)}` : `Je bent ${money(cents, currency)} verschuldigd`;
 }
 
-/** The first letters of the first two words: "Weekendje Texel" -> "WT". */
-export function initials(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  return words
-    .slice(0, 2)
-    .map((word) => [...word][0]!.toUpperCase())
-    .join("");
-}
-
-/** A member's tint follows their position in the group, as on the other clients. */
+/** A member's highlighter follows their position in the group, as on the other clients. */
 export const memberColor = (members: Member[], memberId: string): GroupColor =>
   GROUP_COLORS[Math.max(0, members.findIndex((m) => m.id === memberId)) % GROUP_COLORS.length]!;
 

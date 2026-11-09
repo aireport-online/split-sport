@@ -2,9 +2,9 @@ import type { Expense, GroupDetail, Member, SplitMode } from "@split/core";
 import { useMutation } from "@tanstack/react-query";
 import { Minus, Plus, ScanLine, Trash2 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-import { Avatar, Button, ConfirmDialog, Dialog, ErrorBanner, Field, Segmented } from "../components/ui";
+import { Button, ConfirmDialog, Dialog, ErrorBanner, Field, Leader, Mark, Segmented } from "../components/ui";
 import { api, errorMessage } from "../lib/api";
-import { memberColor, money } from "../lib/format";
+import { memberColor, money, plain } from "../lib/format";
 import { useConfig, useInvalidateGroups } from "../lib/queries";
 import { applyScan, draftFromExpense, evaluateDraft, itemsTotalCents, newDraft, newItem, type ExpenseDraft } from "./draft";
 import { scanReceipt } from "./scan";
@@ -94,7 +94,7 @@ export function ExpenseDialog({
         <div className="field-row" style={{ marginTop: 16 }}>
           <Field label="Bedrag">
             <input
-              className="input input--amount"
+              className="input input--figure"
               inputMode="decimal"
               value={draft.amount}
               onChange={(event) => update({ amount: event.target.value })}
@@ -160,9 +160,12 @@ export function ExpenseDialog({
           <div className="preview" aria-live="polite">
             <p className="preview__title">Per persoon</p>
             {result.shares.map((share) => (
-              <div key={share.memberId} className="preview__row">
-                <span>{group.members.find((m) => m.id === share.memberId)?.name}</span>
-                <span className="amount">{money(share.amountCents, group.currency)}</span>
+              <div key={share.memberId} className="line">
+                <Mark color={memberColor(group.members, share.memberId)}>
+                  {group.members.find((m) => m.id === share.memberId)?.name}
+                </Mark>
+                <Leader />
+                <span className="line__amount">{plain(share.amountCents)}</span>
               </div>
             ))}
             {result.note && (
@@ -206,10 +209,9 @@ interface EditorProps {
 }
 
 const MemberLabel = ({ group, member }: { group: GroupDetail; member: Member }) => (
-  <>
-    <Avatar name={member.name} color={memberColor(group.members, member.id)} small />
-    <span className="split-list__name">{member.name}</span>
-  </>
+  <span className="split-list__name">
+    <Mark color={memberColor(group.members, member.id)}>{member.name}</Mark>
+  </span>
 );
 
 function EqualEditor({ group, draft, update }: EditorProps) {
@@ -269,13 +271,13 @@ function SharesEditor({ group, draft, update }: EditorProps) {
           <li key={member.id}>
             <MemberLabel group={group} member={member} />
             <span className="stepper">
-              <Button small aria-label={`Minder voor ${member.name}`} disabled={weight === 0} onClick={() => set(member.id, weight - 1)}>
+              <Button small icon aria-label={`Minder voor ${member.name}`} disabled={weight === 0} onClick={() => set(member.id, weight - 1)}>
                 <Minus size={14} />
               </Button>
               <span className="stepper__value" aria-label={`${weight} aandelen`}>
                 {weight}
               </span>
-              <Button small aria-label={`Meer voor ${member.name}`} onClick={() => set(member.id, weight + 1)}>
+              <Button small icon aria-label={`Meer voor ${member.name}`} onClick={() => set(member.id, weight + 1)}>
                 <Plus size={14} />
               </Button>
             </span>
@@ -317,11 +319,20 @@ function ItemsEditor({ group, draft, update, children }: EditorProps & { childre
               />
               <Button
                 variant="ghost"
+                small
+                icon
                 aria-label={`Regel ${index + 1} verwijderen`}
                 onClick={() => update({ items: draft.items.filter((other) => other.key !== item.key) })}
               >
                 <Trash2 size={16} />
               </Button>
+            </div>
+            <div className="item__swipe" aria-hidden="true">
+              {group.members
+                .filter((member) => item.memberIds.includes(member.id))
+                .map((member) => (
+                  <span key={member.id} data-hl={memberColor(group.members, member.id)} />
+                ))}
             </div>
             <div className="chips" role="group" aria-label={`Wie had ${item.name || `regel ${index + 1}`}?`}>
               {group.members.map((member) => {
@@ -331,7 +342,7 @@ function ItemsEditor({ group, draft, update, children }: EditorProps & { childre
                     key={member.id}
                     type="button"
                     className="chip"
-                    data-tint={memberColor(group.members, member.id)}
+                    data-hl={memberColor(group.members, member.id)}
                     aria-pressed={active}
                     onClick={() =>
                       patchItem(item.key, {
@@ -339,7 +350,6 @@ function ItemsEditor({ group, draft, update, children }: EditorProps & { childre
                       })
                     }
                   >
-                    <Avatar name={member.name} color={memberColor(group.members, member.id)} small />
                     {member.name}
                   </button>
                 );
@@ -363,12 +373,8 @@ function ItemsEditor({ group, draft, update, children }: EditorProps & { childre
           <Plus size={16} /> Regel toevoegen
         </Button>
         {children}
-        <span className="spacer" style={{ flex: 1 }} />
-        {total > 0 && (
-          <span className="muted small">
-            Regels samen <span className="amount">{money(total, group.currency)}</span>
-          </span>
-        )}
+        <span className="spacer" />
+        {total > 0 && <span className="small">Regels samen {money(total, group.currency)}</span>}
       </div>
     </div>
   );

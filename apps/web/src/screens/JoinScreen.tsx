@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { Avatar, Button, Empty, ErrorBanner, SkeletonRows, Tile } from "../components/ui";
+import { Button, Empty, ErrorBanner, GroupName, SkeletonRows } from "../components/ui";
 import { api, errorMessage } from "../lib/api";
 import { applyGroup, keys } from "../lib/queries";
 import { useUser } from "../lib/session";
@@ -79,14 +79,13 @@ export function JoinScreen() {
         )}
         {invite.isSuccess && (
           <div className="card__body">
-            <div className="page-header__title" style={{ marginBottom: 20 }}>
-              <Tile name={invite.data.name} color={invite.data.color} size="large" />
-              <div>
-                <h2>{invite.data.name}</h2>
-                <p className="muted small">
-                  {invite.data.memberCount} {invite.data.memberCount === 1 ? "lid" : "leden"}
-                </p>
-              </div>
+            <div style={{ marginBottom: 20 }}>
+              <h2 style={{ fontSize: 30 }}>
+                <GroupName name={invite.data.name} color={invite.data.color} />
+              </h2>
+              <p className="muted small" style={{ marginTop: 6 }}>
+                {invite.data.memberCount} {invite.data.memberCount === 1 ? "lid" : "leden"}
+              </p>
             </div>
 
             {invite.data.alreadyMember ? (
@@ -111,10 +110,9 @@ export function JoinScreen() {
                         aria-pressed={choice === member.id}
                         onClick={() => setChoice(member.id)}
                       >
-                        <Avatar name={member.name} color="slate" small />
                         <span>
                           {member.name}
-                          <span className="row__sub">Staat al in de groep; neem dit saldo over</span>
+                          <span className="choice__sub">Staat al in de groep; neem dit saldo over</span>
                         </span>
                       </button>
                     ))}
@@ -124,10 +122,9 @@ export function JoinScreen() {
                       aria-pressed={choice === NEW_MEMBER}
                       onClick={() => setChoice(NEW_MEMBER)}
                     >
-                      <Avatar name={user.name} color="blue" small />
                       <span>
                         Ik sta er niet tussen
-                        <span className="row__sub">Doe mee als {user.name}</span>
+                        <span className="choice__sub">Doe mee als {user.name}</span>
                       </span>
                     </button>
                   </fieldset>

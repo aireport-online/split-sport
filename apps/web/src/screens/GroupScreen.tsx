@@ -2,11 +2,11 @@ import type { Expense, GroupDetail, Transfer } from "@split/core";
 import { ArrowRight, Check, Copy, Plus, Settings, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
-import { Avatar, Balance, Button, Empty, ErrorBanner, Money, Segmented, SkeletonRows, Tile } from "../components/ui";
+import { Balance, Button, Empty, ErrorBanner, GroupName, Leader, Mark, Segmented, SkeletonRows, Stamp } from "../components/ui";
 import { ExpenseDialog } from "../expense/ExpenseDialog";
 import { SettlementDialog, type SettlementDraft } from "../expense/SettlementDialog";
 import { errorMessage } from "../lib/api";
-import { balanceWords, formatIban, memberColor, memberName, money, monthHeading, myBalanceSentence, shortDate } from "../lib/format";
+import { balanceWords, formatIban, memberColor, memberName, money, monthHeading, myBalanceSentence, plain, shortDate } from "../lib/format";
 import { useExpenses, useGroup } from "../lib/queries";
 import { InviteDialog } from "./InviteDialog";
 
@@ -47,8 +47,7 @@ export function GroupScreen() {
   const detail = group.data;
   const myBalance = detail.balances.find((b) => b.memberId === detail.myMemberId)?.balanceCents ?? 0;
 
-  const openTransfer = (transfer: Transfer) =>
-    setOpen({ kind: "settlement", expense: null, draft: { ...transfer } });
+  const openTransfer = (transfer: Transfer) => setOpen({ kind: "settlement", expense: null, draft: { ...transfer } });
 
   const openEntry = (expense: Expense) =>
     expense.kind === "settlement"
@@ -68,10 +67,11 @@ export function GroupScreen() {
     <>
       <header className="page-header">
         <div className="page-header__title">
-          <Tile name={detail.name} color={detail.color} size="large" />
           <div style={{ minWidth: 0 }}>
-            <h1>{detail.name}</h1>
-            <p className="muted small">
+            <h1>
+              <GroupName name={detail.name} color={detail.color} />
+            </h1>
+            <p className="small">
               {myBalanceSentence(myBalance, detail.currency)} · {detail.members.length}{" "}
               {detail.members.length === 1 ? "lid" : "leden"} · {money(detail.totalSpentCents, detail.currency)} uitgegeven
             </p>
@@ -79,10 +79,10 @@ export function GroupScreen() {
         </div>
         <div className="page-header__actions">
           <Button variant="primary" onClick={() => setOpen({ kind: "expense", expense: null })}>
-            <Plus size={16} /> Uitgave toevoegen
+            <Plus size={18} /> Uitgave toevoegen
           </Button>
           <Button onClick={() => setOpen({ kind: "invite" })} aria-label="Uitnodigen">
-            <UserPlus size={16} /> <span className="hide-on-phone">Uitnodigen</span>
+            <UserPlus size={18} /> <span className="hide-on-phone">Uitnodigen</span>
           </Button>
           <Link className="button button--icon" to={`/groups/${detail.id}/settings`} aria-label="Groepsinstellingen" title="Groepsinstellingen">
             <Settings size={18} />
@@ -131,9 +131,7 @@ export function GroupScreen() {
         </div>
       </div>
 
-      {open?.kind === "expense" && (
-        <ExpenseDialog group={detail} expense={open.expense} onClose={() => setOpen(null)} />
-      )}
+      {open?.kind === "expense" && <ExpenseDialog group={detail} expense={open.expense} onClose={() => setOpen(null)} />}
       {open?.kind === "settlement" && (
         <SettlementDialog group={detail} draft={open.draft} expense={open.expense} onClose={() => setOpen(null)} />
       )}
@@ -147,6 +145,11 @@ function myImpact(expense: Expense, myMemberId: string): number {
   const paid = expense.paidById === myMemberId ? expense.amountCents : 0;
   const owed = expense.shares.find((s) => s.memberId === myMemberId)?.amountCents ?? 0;
   return paid - owed;
+}
+
+/** A member's name with their highlighter. */
+function Person({ group, memberId }: { group: GroupDetail; memberId: string }) {
+  return <Mark color={memberColor(group.members, memberId)}>{memberName(group.members, memberId)}</Mark>;
 }
 
 function ExpenseList({
@@ -168,34 +171,36 @@ function ExpenseList({
 
   return (
     <>
-      {months.map((month) => (
+      {months.map((month, index) => (
         <div key={month.heading}>
+          {index > 0 && <hr className="perforation" />}
           <p className="rows__heading">{month.heading}</p>
           <ul className="rows">
             {month.entries.map((expense) => {
-              const payer = memberName(group.members, expense.paidById);
               const settlement = expense.kind === "settlement";
               const impact = myImpact(expense, group.myMemberId);
+              const receiver = expense.shares[0]?.memberId ?? "";
               return (
                 <li key={expense.id}>
                   <button type="button" className="row" onClick={() => onOpen(expense)}>
-                    <Avatar name={payer} color={memberColor(group.members, expense.paidById)} />
-                    <span className="row__main">
-                      <span className="row__title">
+                    <span className="line">
+                      <span className="line__name">
                         {settlement
-                          ? `${payer} betaalde ${memberName(group.members, expense.shares[0]?.memberId ?? "")}`
+                          ? `${memberName(group.members, expense.paidById)} betaalde ${memberName(group.members, receiver)}`
                           : expense.description}
                       </span>
-                      <span className="row__sub">
-                        {settlement ? "Betaling" : `${payer} betaalde`} · {shortDate(expense.date)}
-                      </span>
+                      <Leader />
+                      <span className="line__amount">{plain(expense.amountCents)}</span>
                     </span>
-                    <span className="row__end">
-                      <Money cents={expense.amountCents} currency={group.currency} />
-                      {!settlement && impact !== 0 && (
-                        <span className="row__sub" style={impact > 0 ? { color: "var(--positive)" } : undefined}>
-                          je {balanceWords(impact, group.currency)}
-                        </span>
+                    <span className="line line--sub">
+                      <span>
+                        <Person group={group} memberId={expense.paidById} /> {settlement ? "betaling" : "betaalde"} ·{" "}
+                        {shortDate(expense.date)}
+                      </span>
+                      {settlement ? (
+                        <Stamp>Betaald</Stamp>
+                      ) : (
+                        impact !== 0 && <span>je {balanceWords(impact, group.currency)}</span>
                       )}
                     </span>
                   </button>
@@ -210,38 +215,22 @@ function ExpenseList({
 }
 
 function BalanceCard({ group }: { group: GroupDetail }) {
-  const largest = Math.max(1, ...group.balances.map((b) => Math.abs(b.balanceCents)));
   return (
     <section className="card" aria-label="Saldo">
       <div className="card__header">
         <h2>Saldo</h2>
       </div>
-      <div style={{ paddingBottom: 12 }}>
+      <div style={{ paddingBottom: 14 }}>
         {group.members.map((member) => {
           const cents = group.balances.find((b) => b.memberId === member.id)?.balanceCents ?? 0;
-          const width = `${(Math.abs(cents) / largest) * 50}%`;
           return (
             <div key={member.id} className="balance-row">
-              <Avatar name={member.name} color={memberColor(group.members, member.id)} small />
               <span className="balance-row__name">
-                {member.name}
-                {member.id === group.myMemberId && <span className="muted"> (jij)</span>}
-                {member.userId === null && (
-                  <>
-                    {" "}
-                    <span className="pill">geen account</span>
-                  </>
-                )}
+                <Mark color={memberColor(group.members, member.id)}>{member.name}</Mark>
+                {member.id === group.myMemberId && <span className="muted small">(jij)</span>}
+                {member.userId === null && <span className="pill">geen account</span>}
               </span>
-              <Balance cents={cents} currency={group.currency} />
-              <span className="balance-bar" aria-hidden="true">
-                {cents !== 0 && (
-                  <span
-                    className={`balance-bar__fill${cents > 0 ? " balance-bar__fill--positive" : ""}`}
-                    style={cents > 0 ? { left: "50%", width } : { right: "50%", width }}
-                  />
-                )}
-              </span>
+              <Balance cents={cents} />
             </div>
           );
         })}
@@ -257,28 +246,28 @@ function SettleCard({ group, onPay }: { group: GroupDetail; onPay: (transfer: Tr
         <h2>Vereffenen</h2>
       </div>
       {group.transfers.length === 0 ? (
-        <p className="muted" style={{ padding: "4px var(--pad) 24px" }}>
+        <p className="muted" style={{ padding: "4px var(--pad) 22px" }}>
           Iedereen staat quitte.
         </p>
       ) : (
-        <div style={{ paddingBottom: 8 }}>
+        <div style={{ paddingBottom: 6 }}>
           {group.transfers.map((transfer) => {
             const receiver = group.members.find((m) => m.id === transfer.toMemberId);
             return (
               <div key={`${transfer.fromMemberId}-${transfer.toMemberId}`} className="transfer">
                 <div className="transfer__line">
                   <span className="transfer__names">
-                    {memberName(group.members, transfer.fromMemberId)} <ArrowRight aria-label="betaalt" />{" "}
-                    {memberName(group.members, transfer.toMemberId)}
+                    <Person group={group} memberId={transfer.fromMemberId} />
+                    <ArrowRight size={14} aria-label="betaalt" />
+                    <Person group={group} memberId={transfer.toMemberId} />
+                    <span className="spacer" />
+                    <span className="amount">{plain(transfer.amountCents)}</span>
                   </span>
-                  <Money cents={transfer.amountCents} currency={group.currency} />
-                </div>
-                <div className="transfer__actions">
                   <Button small onClick={() => onPay(transfer)}>
                     Markeer als betaald
                   </Button>
-                  {receiver?.iban && <IbanButton iban={receiver.iban} />}
                 </div>
+                {receiver?.iban && <IbanButton iban={receiver.iban} />}
               </div>
             );
           })}

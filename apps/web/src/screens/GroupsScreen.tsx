@@ -3,9 +3,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Balance, Button, Dialog, Empty, ErrorBanner, Field, SkeletonRows, Tile } from "../components/ui";
+import { Balance, Button, Dialog, Empty, ErrorBanner, Field, GroupName, Leader, SkeletonRows } from "../components/ui";
 import { api, errorMessage } from "../lib/api";
-import { money, myBalanceSentence } from "../lib/format";
+import { money, myBalanceSentence, signedMoney } from "../lib/format";
 import { applyGroup, useGroups } from "../lib/queries";
 
 export function GroupsScreen() {
@@ -25,7 +25,7 @@ export function GroupsScreen() {
         </div>
         <div className="page-header__actions">
           <Button variant="primary" onClick={() => setCreating(true)}>
-            <Plus size={16} /> Nieuwe groep
+            <Plus size={18} /> Nieuwe groep
           </Button>
         </div>
       </header>
@@ -33,57 +33,64 @@ export function GroupsScreen() {
       <div className="overview">
         <section className="card overview__total" aria-label="Jouw saldo">
           <div className="card__body">
-            <p className="total__label">Jouw saldo over alle groepen</p>
-            <p className="figure" style={{ color: total > 0 ? "var(--positive)" : undefined }}>
+            <p className="muted small">Jouw saldo</p>
+            <p className="figure">{signedMoney(total)}</p>
+            <p className="small" style={{ marginTop: 2 }}>
               {myBalanceSentence(total)}
             </p>
             <div className="total__split">
-              <div>
-                <span className="muted">Je krijgt nog</span>
-                <span className="amount">{money(toReceive)}</span>
+              <div className="line">
+                <span>Je krijgt nog</span>
+                <Leader />
+                <span className="line__amount">{money(toReceive)}</span>
               </div>
-              <div>
-                <span className="muted">Je betaalt nog</span>
-                <span className="amount">{money(toPay)}</span>
+              <div className="line">
+                <span>Je betaalt nog</span>
+                <Leader />
+                <span className="line__amount">{money(toPay)}</span>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="card overview__list" aria-label="Je groepen">
-          {groups.isPending && <SkeletonRows />}
+        <section className="overview__list" aria-label="Je groepen">
+          {groups.isPending && (
+            <div className="card">
+              <SkeletonRows />
+            </div>
+          )}
           {groups.isError && (
-            <div className="card__body">
-              <ErrorBanner message={errorMessage(groups.error)} />
+            <div className="card">
+              <div className="card__body">
+                <ErrorBanner message={errorMessage(groups.error)} />
+              </div>
             </div>
           )}
           {groups.isSuccess && list.length === 0 && (
-            <Empty title="Nog geen groepen" text="Maak er een voor je huis, vakantie of etentje.">
-              <Button variant="primary" onClick={() => setCreating(true)}>
-                Nieuwe groep
-              </Button>
-            </Empty>
+            <div className="card">
+              <Empty title="Nog geen groepen" text="Maak er een voor je huis, vakantie of etentje.">
+                <Button variant="primary" onClick={() => setCreating(true)}>
+                  Nieuwe groep
+                </Button>
+              </Empty>
+            </div>
           )}
-          {list.length > 0 && (
-            <ul className="rows" style={{ paddingTop: 8 }}>
-              {list.map((group) => (
-                <li key={group.id}>
-                  <Link to={`/groups/${group.id}`} className="row">
-                    <Tile name={group.name} color={group.color} />
-                    <span className="row__main">
-                      <span className="row__title">{group.name}</span>
-                      <span className="row__sub">
-                        {group.memberCount} {group.memberCount === 1 ? "lid" : "leden"}
-                      </span>
-                    </span>
-                    <span className="row__end">
-                      <Balance cents={group.myBalanceCents} currency={group.currency} />
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+          {list.map((group) => (
+            <Link key={group.id} to={`/groups/${group.id}`} className="card group-receipt">
+              <span className="group-receipt__name">
+                <GroupName name={group.name} color={group.color} />
+              </span>
+              <span className="line" style={{ marginTop: 6 }}>
+                <span className="muted">
+                  {group.memberCount} {group.memberCount === 1 ? "lid" : "leden"}
+                </span>
+                <Leader />
+                <span className="line__amount">
+                  <Balance cents={group.myBalanceCents} euro />
+                </span>
+              </span>
+            </Link>
+          ))}
         </section>
 
         <JoinCard />
@@ -100,8 +107,8 @@ function JoinCard() {
   return (
     <section className="card overview__join" aria-label="Deelnemen met code">
       <div className="card__body">
-        <h2 style={{ fontSize: 16 }}>Deelnemen met code</h2>
-        <p className="muted small" style={{ margin: "4px 0 14px" }}>
+        <h2>Deelnemen met code</h2>
+        <p className="muted small" style={{ margin: "6px 0 10px" }}>
           Heb je een uitnodigingscode gekregen? Vul hem hier in.
         </p>
         <form
@@ -165,7 +172,7 @@ function NewGroupDialog({ onClose }: { onClose: () => void }) {
         <input className="input" value={name} onChange={(event) => setName(event.target.value)} maxLength={60} autoFocus />
       </Field>
       <div className="field">
-        <span className="field__label">Kleur</span>
+        <span className="field__label">Markeerstift</span>
         <ColorPicker value={color} onChange={setColor} />
       </div>
       {create.error && (
@@ -178,16 +185,17 @@ function NewGroupDialog({ onClose }: { onClose: () => void }) {
 }
 
 const COLOR_NAMES: Record<GroupColor, string> = {
-  blue: "Blauw",
-  amber: "Amber",
-  teal: "Zeegroen",
+  amber: "Geel",
   rose: "Roze",
-  green: "Groen",
-  coral: "Koraal",
+  green: "Mint",
+  coral: "Oranje",
+  blue: "Blauw",
   lime: "Limoen",
+  teal: "Turquoise",
   slate: "Grijs",
 };
 
+/** Pick one of the eight highlighters for a group. */
 export function ColorPicker({
   value,
   onChange,
@@ -196,13 +204,13 @@ export function ColorPicker({
   onChange: (color: GroupColor) => void;
 }) {
   return (
-    <div className="swatches" role="group" aria-label="Kleur">
+    <div className="swatches" role="group" aria-label="Markeerstift">
       {GROUP_COLORS.map((color) => (
         <button
           key={color}
           type="button"
           className="swatch"
-          data-tint={color}
+          data-hl={color}
           aria-pressed={value === color}
           aria-label={COLOR_NAMES[color]}
           title={COLOR_NAMES[color]}

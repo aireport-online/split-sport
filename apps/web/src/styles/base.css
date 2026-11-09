@@ -1,52 +1,45 @@
-/* Tokens: the "pastel consumer" style from docs/design.md. */
+/*
+ * House style "Kassabon" (docs/design.md): receipt paper on a desk, numbers
+ * printed like a till prints them, one highlighter per person.
+ */
 :root {
-  --ground: #f3f5f7;
-  --surface: #ffffff;
-  --raised: #f2f8fd;
-  --border: #e6e6e6;
-  --rule: #f0f1f3;
-  --control: #d6d9dd;
-  --text: #1b1d1f;
-  --muted: #5c6064;
-  --accent: #1d5fd6;
-  --accent-hover: #184fb4;
-  --accent-soft: #dcf1ff;
-  --accent-ink: #0a3a80;
-  --positive: #2f7a45;
-  --negative: #c41c29;
-  --neutral-bg: #eef1f4;
-  --neutral-bg-hover: #e3e7eb;
-  --neutral-ink: #3a3d40;
-  --negative-bg: #ffedea;
-  --negative-ink: #831c1e;
+  --desk: #e8e5de;
+  --paper: #fbf8f1;
+  --ink: #141414;
+  --on-ink: #fbf8f1;
+  --muted: #615d55;
+  --perforation: #b5b0a5;
+  --stamp: #d0342c;
+  --hover: rgb(20 20 20 / 0.06);
 
-  --radius-card: 20px;
-  --radius-control: 10px;
-  --radius-small: 8px;
-  --row-height: 72px;
-  --sidebar-width: 240px;
-  --gap: 24px;
-  --pad: 24px;
-  --control-height: 40px;
+  --tooth: 12px;
+  --radius: 4px;
+  --sidebar-width: 232px;
+  --gap: 28px;
+  --pad: 22px;
+  --control-height: 44px;
 
-  --fs-title: 28px;
-  --fs-section: 20px;
-  --fs-figure: 32px;
-  --fs-body: 16px;
-  --fs-small: 14px;
+  --fs-title: 40px;
+  --fs-receipt-title: 24px;
+  --fs-figure: 34px;
+  --fs-body: 15px;
+  --fs-small: 13px;
 
-  --font: "Manrope Variable", Manrope, Inter, system-ui, sans-serif;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, Menlo, monospace;
+
+  --dash: 1.5px dashed var(--perforation);
 }
 
-/* Tints for group tiles and member avatars. */
-[data-tint="blue"] { --tint-bg: #dcf1ff; --tint-ink: #0a3a80; }
-[data-tint="amber"] { --tint-bg: #fff1cf; --tint-ink: #7a3e00; }
-[data-tint="teal"] { --tint-bg: #d5f3f1; --tint-ink: #0b4f4a; }
-[data-tint="rose"] { --tint-bg: #ffe1ec; --tint-ink: #8a1846; }
-[data-tint="green"] { --tint-bg: #dcfae5; --tint-ink: #0b4a22; }
-[data-tint="coral"] { --tint-bg: #ffe4dc; --tint-ink: #8a2b12; }
-[data-tint="lime"] { --tint-bg: #ecf6cc; --tint-ink: #3f5200; }
-[data-tint="slate"] { --tint-bg: #e9edf2; --tint-ink: #2f3a46; }
+/* The eight highlighters. */
+[data-hl="amber"] { --hl: #fff04a; }
+[data-hl="rose"] { --hl: #ff8ccf; }
+[data-hl="green"] { --hl: #8af0ae; }
+[data-hl="coral"] { --hl: #ffae5c; }
+[data-hl="blue"] { --hl: #8fd4ff; }
+[data-hl="lime"] { --hl: #d2f25a; }
+[data-hl="teal"] { --hl: #74e6da; }
+[data-hl="slate"] { --hl: #d8d4c9; }
 
 *,
 *::before,
@@ -60,12 +53,12 @@ html {
 
 body {
   margin: 0;
-  background: var(--ground);
-  color: var(--text);
-  font-family: var(--font);
+  background: var(--desk);
+  color: var(--ink);
+  font-family: var(--mono);
   font-size: var(--fs-body);
   line-height: 1.5;
-  font-variant-numeric: tabular-nums;
+  font-variant-ligatures: none;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -76,17 +69,19 @@ p {
   margin: 0;
 }
 
+h1,
+h2 {
+  font-family: var(--display);
+  font-weight: 700;
+  line-height: 1.05;
+}
+
 h1 {
   font-size: var(--fs-title);
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
 }
 
 h2 {
-  font-size: var(--fs-section);
-  font-weight: 500;
-  line-height: 1.3;
+  font-size: var(--fs-receipt-title);
 }
 
 a {
@@ -107,13 +102,13 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: var(--accent-soft);
-  color: var(--accent-ink);
+  background: #fff04a;
+  color: #141414;
 }
 
 .muted {
@@ -137,7 +132,9 @@ button {
   .button,
   .nav-item,
   .row,
-  .chip {
+  .chip,
+  .input,
+  .select {
     transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
   }
 }

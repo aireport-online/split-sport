@@ -2,7 +2,12 @@
 
 The same product on three clients: web (`apps/web`), Android (`apps/android`, Kotlin + Compose) and
 iOS (`apps/ios`, SwiftUI). This file fixes what must be the same everywhere: the screens, the words
-and the colours. Each client uses its platform's own navigation, controls and typeface.
+and the house style. Each client keeps its platform's own navigation patterns and gestures.
+
+Version 2 of the house style is called **Kassabon** and is described under "House style" below. The
+interface designs it was built from are in [`docs/design/v2`](design/v2): `kassabon-mobiel-1.jpg`,
+`kassabon-mobiel-2.jpg` and `kassabon-web.jpg` are the reference; when this text and a picture
+disagree, this text wins.
 
 The interface is Dutch. Code, comments and identifiers are English.
 
@@ -10,9 +15,10 @@ The interface is Dutch. Code, comments and identifiers are English.
 
 1. **Inloggen / Account maken.** E-mail and password; registering also asks a name. The mobile apps
    have a "Server" field behind "Geavanceerd" to point at another server.
-2. **Groepen** (home). On top the balance over all groups, in words: "Je krijgt € 12,50",
-   "Je bent € 8,00 verschuldigd" or "Je staat quitte". Then the groups: colour tile with initials,
-   name, number of members, own balance. Actions: "Nieuwe groep" and "Deelnemen met code".
+2. **Groepen** (home). On top a receipt "Jouw saldo" with the balance over all groups as a large
+   figure ("+ € 109,55"), and in words: "Je krijgt € 12,50", "Je bent € 8,00 verschuldigd" or
+   "Je staat quitte". Then one small receipt per group: name (underlined with the group's
+   highlighter), number of members, own balance. Actions: "Nieuwe groep" and "Deelnemen met code".
 3. **Groep.** Two parts: "Uitgaven" and "Saldo".
    - *Uitgaven*: newest first. A row shows the description, "Anna betaalde · 2 nov", the amount and
      what it means for you ("je krijgt € 6,66" / "je betaalt € 3,33"; nothing when you are not in it).
@@ -54,43 +60,90 @@ failure shows the server's `error.message`.
 | Member without account | "geen account" |
 | You | "jij" (after the name: "Anna (jij)") |
 
-Amounts are formatted as Dutch euros: `€ 1.234,56`. A positive balance gets a plus sign and the
-positive colour; a negative balance a minus sign in the normal text colour (owing money is not an
-error, so no red); zero is grey. Red is only for destructive actions and errors.
+Amounts are formatted the Dutch way: `1.234,56`. On receipt lines the euro sign is left out, as on a
+real receipt ("Boodschappen Jumbo ....... 64,12"); totals, headline figures and sentences carry it
+("TOTAAL € 84,00", "Je krijgt € 24,95"). A balance always has its sign: "+ 24,95", "− 21,60"; zero is
+"0,00" in the muted ink. There is no green or red for balances: the sign says it. Red is only for
+the "BETAALD" stamp, destructive actions and errors.
 
-## Colour
+## House style: Kassabon (v2)
 
-Light theme tokens (the mobile apps add a dark theme with the same roles):
+The idea comes from the thing the app is about: **the paper till receipt, and the highlighter you
+use to mark what was yours.** Every panel is a piece of receipt paper, every number is printed like
+a till prints it, and every person is a highlighter colour.
+
+### Colour
 
 | Role | Light | Dark |
 | --- | --- | --- |
-| Ground (page) | `#f3f5f7` | `#101214` |
-| Surface (cards) | `#ffffff` | `#1a1d20` |
-| Border | `#e6e6e6` | `#2c3034` |
-| Text | `#1b1d1f` | `#eceef0` |
-| Muted text | `#5c6064` | `#a0a5ab` |
-| Accent (primary action) | `#1d5fd6` | `#7fb0ff` |
-| On accent | `#ffffff` | `#06224f` |
-| Positive | `#2f7a45` | `#6fcf8b` |
-| Negative / destructive | `#c41c29` | `#ff8a8f` |
+| Desk (page ground) | `#e8e5de` | `#171614` |
+| Paper (receipts, sheets, dialogs) | `#fbf8f1` | `#24221f` |
+| Ink (text, primary buttons, outlines) | `#141414` | `#f4f0e7` |
+| On ink (text on a primary button) | `#fbf8f1` | `#171614` |
+| Muted ink (labels, secondary lines) | `#615d55` | `#a9a499` |
+| Perforation (dashed dividers, field underlines) | `#b5b0a5` | `#4a463f` |
+| Stamp red ("BETAALD", destructive, errors) | `#d0342c` | `#ff6b5e` |
 
-Cards have a 20 px radius, controls 10 px. No gradients, no shadows on things at rest.
+Text that lies on a highlighter is always `#141414`, in both themes. No gradients and no shadows
+anywhere; the only depth is paper on the desk.
 
-### Tints
+### Highlighters
 
-Groups and people have no pictures. A group is a rounded tile and a person a circle, filled with a
-pale tint and showing initials in the dark ink of the same hue. A group stores its tint (`color`);
-a member's tint is their position in `GroupDetail.members` modulo 8, in this order:
+A group stores one of eight keys (`color`); a member's highlighter is their position in
+`GroupDetail.members` modulo 8, in this order:
 
-| Key | Background | Ink | Dark background | Dark ink |
-| --- | --- | --- | --- | --- |
-| `blue` | `#dcf1ff` | `#0a3a80` | `#12305c` | `#cfe6ff` |
-| `amber` | `#fff1cf` | `#7a3e00` | `#4a3206` | `#ffe2a6` |
-| `teal` | `#d5f3f1` | `#0b4f4a` | `#0e3d3a` | `#bdeeea` |
-| `rose` | `#ffe1ec` | `#8a1846` | `#52142e` | `#ffc9dc` |
-| `green` | `#dcfae5` | `#0b4a22` | `#113d20` | `#c2f2d0` |
-| `coral` | `#ffe4dc` | `#8a2b12` | `#52200f` | `#ffcdbf` |
-| `lime` | `#ecf6cc` | `#3f5200` | `#2f3b08` | `#e0f0a8` |
-| `slate` | `#e9edf2` | `#2f3a46` | `#2a3138` | `#d7dee6` |
+| # | Key | Highlighter | Colour |
+| --- | --- | --- | --- |
+| 1 | `amber` | geel | `#fff04a` |
+| 2 | `rose` | roze | `#ff8ccf` |
+| 3 | `green` | mint | `#8af0ae` |
+| 4 | `coral` | oranje | `#ffae5c` |
+| 5 | `blue` | blauw | `#8fd4ff` |
+| 6 | `lime` | limoen | `#d2f25a` |
+| 7 | `teal` | turquoise | `#74e6da` |
+| 8 | `slate` | grijs | `#d8d4c9` |
 
-Initials: the first letter of the first two words ("Weekendje Texel" → "WT", "Anna" → "A").
+The colours are the same in the dark theme.
+
+### Type
+
+Two typefaces, both open source (SIL OFL) and bundled with every client:
+
+- **Barlow Condensed Bold (700)** for everything that is "printed big": the wordmark, screen titles
+  (30 on a phone, 40 on desktop), receipt titles (22), buttons and tabs (17–18).
+- **JetBrains Mono** (400, 500, 700) for everything a till would print: all amounts, receipt lines,
+  labels, field values and running text (15; small 13; headline figure 30 at weight 500).
+
+Month headings on a receipt are uppercase mono ("NOVEMBER 2026"), not letter-spaced.
+
+### Elements
+
+- **Wordmark.** "Split" in Barlow Condensed Bold, torn in two: a vertical dashed perforation line in
+  ink runs between "Sp" and "lit", extending a little above and below the letters, with a small gap
+  between the halves.
+- **Receipt.** Paper fill, no border, no shadow, top corners 2 px. The bottom edge is a zigzag tear:
+  teeth 12 wide and 6 high. Padding 16–20. Sections on one receipt are separated by a
+  **perforation**: a 1.5 px dashed line (dash 6, gap 4) in the perforation colour.
+- **Leader.** A receipt line is "name ........ amount": a dotted leader (2 px dots, 6 px apart, in
+  the perforation colour) fills the space between the two, sitting on the text baseline.
+- **Highlighter.** A person is never an avatar: a person is their name with their highlighter
+  swiped behind it. The stroke is a little taller than the lowercase letters, sticks out about 6 px
+  left and right, has slightly uneven ends and is tilted about −1°. A group's name in a list is
+  underlined with a thick stroke (the lower 40 % of the text) in the group's colour. On a receipt
+  split "per regel", each line is swiped with the colours of the people who had it; shared by
+  several people, the stroke is divided into equal parts left to right, in member order.
+- **Person chips** (to say who had a receipt line): the name in Barlow Condensed on a filled pill in
+  that person's colour when selected; unselected, a pill with a dashed perforation outline and
+  muted text.
+- **Stamp.** A payment between members carries a rubber stamp "BETAALD": Barlow Condensed Bold,
+  uppercase, stamp red, 2 px outline in the same red, corner radius 3, rotated −8°.
+- **Buttons.** Primary: ink fill, on-ink label, radius 4, 48 high on a phone and 44 on desktop.
+  Secondary: 1.5 px ink outline on paper. Destructive: stamp red, underlined text or red outline.
+- **Tabs and segmented controls.** 1.5 px ink outline, radius 4; the selected segment is filled
+  with ink.
+- **Fields.** No boxes: a small muted mono label, the value in mono below it, and a dashed
+  perforation underline that turns solid ink on focus.
+- **Checkbox.** A 20 px square with a 1.5 px ink outline, radius 2; checked, it is filled with ink.
+
+The app icon is `docs/design/v2/icon.svg` (PNG at 1024 px next to it): a receipt with its zigzag
+tear, a perforation down the middle and one yellow highlighter stroke, on the ink ground.

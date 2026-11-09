@@ -3,12 +3,19 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f3f5f7" />
+    <meta name="theme-color" content="#e8e5de" />
     <meta name="description" content="Split: houd met je groep bij wie wat betaald heeft en reken in één keer af." />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <title>Split</title>
   </head>
   <body>
+    <!-- Gives highlighter strokes their slightly uneven edge (see .mark in components.css). -->
+    <svg width="0" height="0" aria-hidden="true" style="position: absolute">
+      <filter id="marker-edge" x="-5%" y="-20%" width="110%" height="140%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.05 0.6" numOctaves="2" seed="7" result="noise" />
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="3.5" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </svg>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

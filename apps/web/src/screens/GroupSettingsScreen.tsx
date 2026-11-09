@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { Avatar, Button, ConfirmDialog, Dialog, Empty, ErrorBanner, Field, SkeletonRows } from "../components/ui";
+import { Button, ConfirmDialog, Dialog, Empty, ErrorBanner, Field, Mark, SkeletonRows } from "../components/ui";
 import { api, errorMessage } from "../lib/api";
 import { memberColor } from "../lib/format";
 import { keys, useGroup, useGroupMutation } from "../lib/queries";
@@ -41,7 +41,7 @@ export function GroupSettingsScreen() {
         </div>
       </header>
 
-      <SettingsSection title="Naam en kleur" text="Zo herkent iedereen de groep in het overzicht.">
+      <SettingsSection title="Naam en markeerstift" text="Zo herkent iedereen de groep in het overzicht.">
         <NameAndColor group={detail} />
       </SettingsSection>
 
@@ -95,7 +95,7 @@ function NameAndColor({ group }: { group: GroupDetail }) {
         <input className="input" value={name} onChange={(event) => setName(event.target.value)} maxLength={60} />
       </Field>
       <div className="field">
-        <span className="field__label">Kleur</span>
+        <span className="field__label">Markeerstift</span>
         <ColorPicker value={color} onChange={setColor} />
       </div>
       {save.error && (
@@ -124,20 +124,20 @@ function Members({ group }: { group: GroupDetail }) {
       <ul className="member-list">
         {group.members.map((member) => (
           <li key={member.id}>
-            <Avatar name={member.name} color={memberColor(group.members, member.id)} small />
             <span className="member-list__name">
-              {member.name}
-              {member.id === group.myMemberId && <span className="muted"> (jij)</span>}
+              <Mark color={memberColor(group.members, member.id)}>{member.name}</Mark>
+              {member.id === group.myMemberId && <span className="muted small">(jij)</span>}
+              {member.userId === null && <span className="pill">geen account</span>}
             </span>
             {member.userId === null && (
               <>
-                <span className="pill">geen account</span>
-                <Button variant="ghost" small aria-label={`${member.name} hernoemen`} onClick={() => setRenaming(member)}>
+                <Button variant="ghost" small icon aria-label={`${member.name} hernoemen`} onClick={() => setRenaming(member)}>
                   <Pencil size={14} />
                 </Button>
                 <Button
                   variant="ghost"
                   small
+                  icon
                   aria-label={`${member.name} verwijderen`}
                   disabled={remove.isPending}
                   onClick={() => remove.mutate(member.id)}

@@ -1,7 +1,7 @@
 import type { GroupColor } from "@split/core";
 import { X } from "lucide-react";
 import { useEffect, useRef, type ButtonHTMLAttributes, type FormEvent, type ReactNode } from "react";
-import { initials, money, signedMoney } from "../lib/format";
+import { signedMoney, signedPlain } from "../lib/format";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -26,33 +26,46 @@ export function Button({ variant = "secondary", small, block, icon, className = 
   return <button type={type} className={classes} {...rest} />;
 }
 
-/** A group's rounded tile with its initials. */
-export function Tile({ name, color, size }: { name: string; color: GroupColor; size?: "small" | "large" }) {
+/** A person: their name with their highlighter swiped behind it. */
+export function Mark({ color, children }: { color: GroupColor; children: ReactNode }) {
   return (
-    <span className={`tile${size ? ` tile--${size}` : ""}`} data-tint={color} aria-hidden="true">
-      {initials(name)}
+    <span className="mark" data-hl={color}>
+      {children}
     </span>
   );
 }
 
-/** A person's circle with their initials. */
-export function Avatar({ name, color, small }: { name: string; color: GroupColor; small?: boolean }) {
+/** A group's name, underlined with the group's highlighter. */
+export function GroupName({ name, color }: { name: string; color: GroupColor }) {
   return (
-    <span className={`avatar${small ? " avatar--small" : ""}`} data-tint={color} aria-hidden="true">
-      {initials(name)}
+    <span className="underline-mark" data-hl={color}>
+      {name}
     </span>
   );
 }
 
-/** A balance: plus and green when money comes back, minus in ink when owed, grey at zero. */
-export function Balance({ cents, currency, zero = "quitte" }: { cents: number; currency?: string; zero?: string }) {
-  if (cents === 0) return <span className="amount amount--zero">{zero}</span>;
-  return <span className={`amount${cents > 0 ? " amount--positive" : ""}`}>{signedMoney(cents, currency)}</span>;
+/** The dotted line between a name and its amount on a receipt. */
+export const Leader = () => <span className="leader" aria-hidden="true" />;
+
+/** The rubber stamp on a payment between members. */
+export const Stamp = ({ children }: { children: ReactNode }) => <span className="stamp">{children}</span>;
+
+/** "Split", torn in two along a perforation. */
+export function Wordmark({ size }: { size?: "small" | "large" }) {
+  return (
+    <span className={`wordmark${size ? ` wordmark--${size}` : ""}`} role="img" aria-label="Split">
+      <span aria-hidden="true">Sp</span>
+      <span className="wordmark__cut" aria-hidden="true" />
+      <span aria-hidden="true">lit</span>
+    </span>
+  );
 }
 
-export const Money = ({ cents, currency }: { cents: number; currency?: string }) => (
-  <span className="amount">{money(cents, currency)}</span>
-);
+/** A balance as a till prints it: "+ 24,95", "− 21,60", and "0,00" in muted ink. */
+export function Balance({ cents, euro }: { cents: number; euro?: boolean }) {
+  const text = euro ? signedMoney(cents) : signedPlain(cents);
+  return <span className={`amount${cents === 0 ? " amount--zero" : ""}`}>{text}</span>;
+}
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -109,17 +122,14 @@ export function Empty({ title, text, children }: { title: string; text?: string;
   );
 }
 
-/** Placeholder rows while a list loads. */
+/** Placeholder lines while a receipt loads. */
 export function SkeletonRows({ count = 3 }: { count?: number }) {
   return (
-    <ul className="rows" aria-busy="true" aria-label="Laden">
+    <ul className="rows" style={{ paddingTop: 12 }} aria-busy="true" aria-label="Laden">
       {Array.from({ length: count }, (_, index) => (
         <li key={index} className="row">
-          <span className="skeleton" style={{ width: 44, height: 44, borderRadius: 12 }} />
-          <span className="row__main">
-            <span className="skeleton" style={{ display: "block", width: "45%", height: 14 }} />
-            <span className="skeleton" style={{ display: "block", width: "30%", height: 12, marginTop: 8 }} />
-          </span>
+          <span className="skeleton" style={{ width: `${70 - index * 12}%` }} />
+          <span className="skeleton" style={{ width: "32%", marginTop: 10 }} />
         </li>
       ))}
     </ul>
