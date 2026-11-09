@@ -29,6 +29,28 @@
   --mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, Menlo, monospace;
 
   --dash: 1.5px dashed var(--perforation);
+
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23141414' stroke-width='1.8'/%3E%3C/svg%3E");
+  --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%23fbf8f1' stroke-width='2'/%3E%3C/svg%3E");
+
+  color-scheme: light dark;
+}
+
+/* The same receipts at night: dark paper on a dark desk, highlighters unchanged. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --desk: #171614;
+    --paper: #24221f;
+    --ink: #f4f0e7;
+    --on-ink: #171614;
+    --muted: #a9a499;
+    --perforation: #4a463f;
+    --stamp: #ff6b5e;
+    --hover: rgb(244 240 231 / 0.08);
+
+    --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23f4f0e7' stroke-width='1.8'/%3E%3C/svg%3E");
+    --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%23171614' stroke-width='2'/%3E%3C/svg%3E");
+  }
 }
 
 /* The eight highlighters. */

@@ -182,8 +182,9 @@
   padding: 18px var(--pad) 16px;
 }
 
-.group-receipt:hover {
-  background: #fffdf8;
+.group-receipt:hover .group-receipt__name {
+  text-decoration: underline 2px;
+  text-underline-offset: 5px;
 }
 
 .group-receipt__name {
@@ -428,9 +429,11 @@
   right: 0;
   left: 0;
   height: calc(var(--tooth) / 2);
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='6'%3E%3Cpath d='M0 0h12L6 6z' fill='%23fbf8f1'/%3E%3C/svg%3E")
-    repeat-x left top / var(--tooth) calc(var(--tooth) / 2);
+  background: var(--paper);
   content: "";
+  /* The teeth are cut out with a mask, so they follow the paper colour of the theme. */
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='6'%3E%3Cpath d='M0 0h12L6 6z'/%3E%3C/svg%3E")
+    repeat-x left top / var(--tooth) calc(var(--tooth) / 2);
 }
 
 .panel__actions {
