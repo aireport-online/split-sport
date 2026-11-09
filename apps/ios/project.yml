@@ -26,6 +26,8 @@ targets:
   Split:
     type: application
     platform: iOS
+    # Everything under Split/ that is not Swift (the asset catalog and the fonts and
+    # their licences in Resources/Fonts) is copied into the app as a resource.
     sources:
       - path: Split
     dependencies:
@@ -37,6 +39,12 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
+        # The typefaces of the house style (SIL OFL), bundled from Split/Resources/Fonts.
+        UIAppFonts:
+          - BarlowCondensed-Bold.ttf
+          - JetBrainsMono-Regular.ttf
+          - JetBrainsMono-Medium.ttf
+          - JetBrainsMono-Bold.ttf
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft

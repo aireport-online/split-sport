@@ -8,11 +8,17 @@ and colours and talks to the REST API described in `docs/api.md`.
 | Path | What |
 | --- | --- |
 | `SplitKit/` | Swift package without dependencies: models, `APIClient`, the `computeShares` port, money parsing and formatting, the colour table, and an `@Observable` view model for every screen. Builds and is tested on macOS and Linux. |
-| `Split/` | The app target: thin SwiftUI views bound to those view models, plus the platform parts (Keychain token store, camera and photo picking, image downscaling, theme). |
+| `Split/` | The app target: thin SwiftUI views bound to those view models, the "Kassabon" house style (`Theme/`, `Components/`: receipts, perforations, leaders, highlighters) and the platform parts (Keychain token store, camera and photo picking, image downscaling). |
 | `project.yml` | [XcodeGen](https://github.com/yonaskolb/XcodeGen) spec. `Split.xcodeproj` and `Split/Info.plist` are generated from it and are not committed. |
 
 All state and logic live in `SplitKit`; a view only reads a view model and forwards taps. If something
-can be tested without a simulator, it belongs in the package.
+can be tested without a simulator, it belongs in the package. That includes the colour table of the
+house style (`SplitKit/Sources/SplitKit/Core/Palette.swift`); `Split/Theme` turns it into SwiftUI
+colours and defines the text styles.
+
+The two typefaces, Barlow Condensed Bold and JetBrains Mono (both SIL OFL), are bundled from
+`Split/Resources/Fonts` together with their licence texts and registered under `UIAppFonts` in
+`project.yml`. The app icon is `docs/design/v2/icon-1024.png`.
 
 ## Build and run (macOS, Xcode 15 or newer)
 

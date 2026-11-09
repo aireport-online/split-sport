@@ -5,41 +5,58 @@ import Observation
 @MainActor
 @Observable
 public final class GroupDetailViewModel {
-    /// One line of "Uitgaven".
+    /// One line of "Uitgaven": "Boodschappen ........ 64,12" with the payer highlighted below it.
     public struct ExpenseRow: Identifiable, Equatable, Sendable {
         public let expense: Expense
         /// The description, or "Bas betaalde Anna" for a payment between members.
         public let title: String
-        /// "Anna betaalde · 2 nov", or just the date for a payment.
-        public let subtitle: String
+        /// The amount as a till prints it, without the euro sign.
         public let amount: String
+        public let payerName: String
+        public let payerColor: GroupColor
+        /// What follows the payer's name: "betaalde · 2 nov", or "betaling · 2 nov" for a payment.
+        public let detail: String
         /// "je krijgt € 6,66" / "je betaalt € 3,33"; nil when it changes nothing for you.
         public let impact: String?
-        public let impactSign: Wording.BalanceSign
 
         public var id: String { expense.id }
+        /// A payment between members; it carries the "BETAALD" stamp.
         public var isSettlement: Bool { expense.kind == .settlement }
+    }
+
+    /// The expenses of one month under their heading ("NOVEMBER 2026").
+    public struct ExpenseMonth: Identifiable, Equatable, Sendable {
+        public let heading: String
+        public let rows: [ExpenseRow]
+
+        public var id: String { heading }
     }
 
     /// One member in "Saldo".
     public struct BalanceRow: Identifiable, Equatable, Sendable {
         public let id: String
-        /// "Anna (jij)" for yourself.
         public let name: String
-        public let initials: String
-        public let tint: GroupColor
+        public let color: GroupColor
+        public let isMe: Bool
         public let hasAccount: Bool
-        /// "krijgt € 12,50", "betaalt € 8,00" or "quitte".
+        public let balanceCents: Int
+        /// "+ 24,95", "− 21,60" or "0,00".
         public let balance: String
-        public let sign: Wording.BalanceSign
+        /// The balance in words for VoiceOver: "krijgt € 24,95".
+        public let spokenBalance: String
     }
 
     /// One suggested payment under "Vereffenen".
     public struct TransferRow: Identifiable, Equatable, Sendable {
         public let transfer: Transfer
-        /// "Bas betaalt Anna € 3,33".
-        public let text: String
+        public let payerName: String
+        public let payerColor: GroupColor
         public let receiverName: String
+        public let receiverColor: GroupColor
+        /// The amount as a till prints it, without the euro sign.
+        public let amount: String
+        /// The whole payment as a sentence for VoiceOver: "Bas betaalt Anna € 3,33".
+        public let spoken: String
         /// The receiver's IBAN as stored, for the clipboard; nil when they have none.
         public let iban: String?
 
@@ -107,41 +124,51 @@ public final class GroupDetailViewModel {
 
     // MARK: Presentation
 
-    public var expenseRows: [ExpenseRow] {
+    /// The expenses, newest first, grouped by month.
+    public var expenseMonths: [ExpenseMonth] {
         guard let detail else { return [] }
-        return expenses.map { expense in
-            let date = expense.date.shortDutch()
-            let payer = detail.memberName(expense.paidById)
-            switch expense.kind {
-            case .settlement:
-                let receiver = detail.memberName(expense.shares.first?.memberId ?? "")
-                return ExpenseRow(
-                    expense: expense, title: "\(payer) betaalde \(receiver)", subtitle: date,
-                    amount: Money.format(expense.amountCents), impact: nil, impactSign: .zero
-                )
-            case .expense:
-                let impact = expense.impactCents(on: detail.myMemberId)
-                return ExpenseRow(
-                    expense: expense, title: expense.description, subtitle: "\(payer) betaalde · \(date)",
-                    amount: Money.format(expense.amountCents), impact: Wording.expenseImpact(impact),
-                    impactSign: Wording.BalanceSign(cents: impact ?? 0)
-                )
+        var months: [(heading: String, rows: [ExpenseRow])] = []
+        for expense in expenses {
+            let heading = expense.date.monthHeading
+            let row = Self.row(for: expense, in: detail)
+            if let last = months.indices.last, months[last].heading == heading {
+                months[last].rows.append(row)
+            } else {
+                months.append((heading, [row]))
             }
         }
+        return months.map { ExpenseMonth(heading: $0.heading, rows: $0.rows) }
+    }
+
+    private static func row(for expense: Expense, in detail: GroupDetail) -> ExpenseRow {
+        let payer = detail.memberName(expense.paidById)
+        let date = expense.date.shortDutch()
+        let isSettlement = expense.kind == .settlement
+        let receiver = detail.memberName(expense.shares.first?.memberId ?? "")
+        return ExpenseRow(
+            expense: expense,
+            title: isSettlement ? "\(payer) betaalde \(receiver)" : expense.description,
+            amount: Money.plain(expense.amountCents),
+            payerName: payer,
+            payerColor: detail.color(ofMember: expense.paidById),
+            detail: isSettlement ? "betaling · \(date)" : "betaalde · \(date)",
+            impact: isSettlement ? nil : Wording.expenseImpact(expense.impactCents(on: detail.myMemberId))
+        )
     }
 
     public var balanceRows: [BalanceRow] {
         guard let detail else { return [] }
-        return detail.members.enumerated().map { index, member in
+        return detail.members.map { member in
             let cents = detail.balanceCents(of: member.id)
             return BalanceRow(
                 id: member.id,
-                name: Wording.memberName(member.name, isMe: member.id == detail.myMemberId),
-                initials: Initials.of(member.name),
-                tint: GroupColor.palette(at: index),
+                name: member.name,
+                color: detail.color(ofMember: member.id),
+                isMe: member.id == detail.myMemberId,
                 hasAccount: member.hasAccount,
-                balance: Wording.memberBalance(cents),
-                sign: Wording.BalanceSign(cents: cents)
+                balanceCents: cents,
+                balance: Money.signedPlain(cents),
+                spokenBalance: Wording.memberBalance(cents)
             )
         }
     }
@@ -153,8 +180,12 @@ public final class GroupDetailViewModel {
             let receiver = detail.memberName(transfer.toMemberId)
             return TransferRow(
                 transfer: transfer,
-                text: "\(payer) betaalt \(receiver) \(Money.format(transfer.amountCents))",
+                payerName: payer,
+                payerColor: detail.color(ofMember: transfer.fromMemberId),
                 receiverName: receiver,
+                receiverColor: detail.color(ofMember: transfer.toMemberId),
+                amount: Money.plain(transfer.amountCents),
+                spoken: "\(payer) betaalt \(receiver) \(Money.euro(transfer.amountCents))",
                 iban: detail.member(transfer.toMemberId)?.iban
             )
         }

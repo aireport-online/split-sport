@@ -29,9 +29,11 @@ public final class ExpenseEditorViewModel {
     public struct PersonShare: Identifiable, Equatable, Sendable {
         public let id: String
         public let name: String
+        public let color: GroupColor
         public let amountCents: Int
 
-        public var amount: String { Money.format(amountCents) }
+        /// The amount as a till prints it, without the euro sign.
+        public var amount: String { Money.plain(amountCents) }
     }
 
     /// The "Per persoon" summary: the shares, or why they cannot be computed yet.
@@ -180,15 +182,15 @@ public final class ExpenseEditorViewModel {
         guard let amountCents else { return nil }
         let divided = members.reduce(0) { $0 + (Money.parse(exactText(for: $1.id)) ?? 0) }
         let remaining = amountCents - divided
-        if remaining > 0 { return "Nog \(Money.format(remaining)) te verdelen" }
-        if remaining < 0 { return "\(Money.format(-remaining)) te veel verdeeld" }
+        if remaining > 0 { return "Nog \(Money.euro(remaining)) te verdelen" }
+        if remaining < 0 { return "\(Money.euro(remaining)) te veel verdeeld" }
         return nil
     }
 
     /// "Per regel": "Verschil van € 4,00 wordt naar rato verdeeld." when total and lines differ.
     public var itemsDifferenceText: String? {
         guard let amountCents, itemsTotalCents > 0, amountCents != itemsTotalCents else { return nil }
-        return "Verschil van \(Money.format(abs(amountCents - itemsTotalCents))) wordt naar rato verdeeld."
+        return "Verschil van \(Money.euro(amountCents - itemsTotalCents)) wordt naar rato verdeeld."
     }
 
     /// The split as it would be sent now; nil while an amount in it cannot be read.
@@ -234,7 +236,10 @@ public final class ExpenseEditorViewModel {
         do {
             let shares = try SplitMath.computeShares(amountCents: amountCents, split: split)
             return .shares(shares.map { share in
-                PersonShare(id: share.memberId, name: memberName(share.memberId), amountCents: share.amountCents)
+                PersonShare(
+                    id: share.memberId, name: name(of: share.memberId), color: color(of: share.memberId),
+                    amountCents: share.amountCents
+                )
             })
         } catch let error as SplitMath.SplitError {
             return .incomplete(error.message)
@@ -254,9 +259,26 @@ public final class ExpenseEditorViewModel {
         return !description.trimmed.isEmpty && !isSaving && !isScanning
     }
 
-    public func memberName(_ memberId: String) -> String {
-        guard let member = members.first(where: { $0.id == memberId }) else { return "–" }
-        return Wording.memberName(member.name, isMe: member.id == myMemberId)
+    /// The total as the last line of the summary: "€ 84,00"; nil while there is no valid amount.
+    public var totalText: String? {
+        guard let amountCents, amountCents > 0 else { return nil }
+        return Money.euro(amountCents)
+    }
+
+    private func name(of memberId: String) -> String {
+        members.first { $0.id == memberId }?.name ?? "–"
+    }
+
+    /// The member's highlighter: their position in the group.
+    private func color(of memberId: String) -> GroupColor {
+        GroupColor.palette(at: members.firstIndex { $0.id == memberId } ?? 0)
+    }
+
+    /// The highlighters of the people who share a receipt line, in member order.
+    public func colors(of item: ItemDraft) -> [GroupColor] {
+        members.indices
+            .filter { item.memberIds.contains(members[$0].id) }
+            .map { GroupColor.palette(at: $0) }
     }
 
     // MARK: Saving, deleting and scanning

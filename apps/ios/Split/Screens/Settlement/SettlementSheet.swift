@@ -13,49 +13,41 @@ struct SettlementSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    Picker("Van", selection: $model.fromMemberId) {
-                        ForEach(model.members) { member in
-                            Text(member.name).tag(member.id)
-                        }
-                    }
-                    Picker("Aan", selection: $model.toMemberId) {
-                        ForEach(model.members) { member in
-                            Text(member.name).tag(member.id)
-                        }
-                    }
-                    LabeledContent("Bedrag") {
-                        AmountField(label: "Bedrag", text: $model.amountText)
-                    }
+            Desk {
+                Receipt {
+                    MemberMenu(label: "Van", members: model.members, selection: $model.fromMemberId)
+                    MemberMenu(label: "Aan", members: model.members, selection: $model.toMemberId)
+                    Perforation()
+                    AmountField(label: "Bedrag", text: $model.amountText, style: .figure)
                     DatePicker("Datum", selection: dateBinding, displayedComponents: .date)
-                } footer: {
                     if let message = model.validationMessage {
                         Text(message)
+                            .font(.tillSmall)
+                            .foregroundStyle(Theme.mutedInk)
                     }
                 }
-                .listRowBackground(Theme.surface)
-
                 if let message = model.errorMessage {
-                    Section {
-                        ErrorRow(message: message)
-                    }
-                    .listRowBackground(Theme.surface)
+                    ErrorBanner(message: message)
                 }
             }
-            .themedList()
             .navigationTitle("Betaling")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuleer") { dismiss() }
+                    Button("Annuleren") { dismiss() }
+                        .font(.buttonLabel)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Bewaar") {
+            }
+            .safeAreaInset(edge: .bottom) {
+                BottomBar {
+                    Button {
                         Task {
                             if await model.save() { dismiss() }
                         }
+                    } label: {
+                        BusyLabel(title: "Opslaan", isBusy: model.isSaving)
                     }
+                    .buttonStyle(PaperButtonStyle(kind: .primary))
                     .disabled(!model.canSave)
                 }
             }

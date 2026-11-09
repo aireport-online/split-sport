@@ -21,6 +21,8 @@ final class CalendarDayTests: XCTestCase {
         XCTAssertEqual(day.shortDutch(referenceYear: 2026), "2 nov")
         XCTAssertEqual(day.shortDutch(referenceYear: 2027), "2 nov 2026")
         XCTAssertEqual(CalendarDay(year: 2026, month: 3, day: 31).shortDutch(referenceYear: 2026), "31 mrt")
+        XCTAssertEqual(day.monthHeading, "NOVEMBER 2026")
+        XCTAssertEqual(CalendarDay(year: 2025, month: 3, day: 1).monthHeading, "MAART 2025")
     }
 
     func testConvertsToAndFromDateInAnyTimeZone() throws {
@@ -46,21 +48,20 @@ final class CalendarDayTests: XCTestCase {
 }
 
 final class PaletteTests: XCTestCase {
-    func testColourTokensMatchTheDesign() {
-        XCTAssertEqual(Palette.ground, ThemedColor(light: 0xF3F5F7, dark: 0x101214))
-        XCTAssertEqual(Palette.surface, ThemedColor(light: 0xFFFFFF, dark: 0x1A1D20))
-        XCTAssertEqual(Palette.border, ThemedColor(light: 0xE6E6E6, dark: 0x2C3034))
-        XCTAssertEqual(Palette.text, ThemedColor(light: 0x1B1D1F, dark: 0xECEEF0))
-        XCTAssertEqual(Palette.mutedText, ThemedColor(light: 0x5C6064, dark: 0xA0A5AB))
-        XCTAssertEqual(Palette.accent, ThemedColor(light: 0x1D5FD6, dark: 0x7FB0FF))
-        XCTAssertEqual(Palette.onAccent, ThemedColor(light: 0xFFFFFF, dark: 0x06224F))
-        XCTAssertEqual(Palette.positive, ThemedColor(light: 0x2F7A45, dark: 0x6FCF8B))
-        XCTAssertEqual(Palette.negative, ThemedColor(light: 0xC41C29, dark: 0xFF8A8F))
+    func testColourRolesMatchTheDesign() {
+        XCTAssertEqual(Palette.desk, ThemedColor(light: 0xE8E5DE, dark: 0x171614))
+        XCTAssertEqual(Palette.paper, ThemedColor(light: 0xFBF8F1, dark: 0x24221F))
+        XCTAssertEqual(Palette.ink, ThemedColor(light: 0x141414, dark: 0xF4F0E7))
+        XCTAssertEqual(Palette.onInk, ThemedColor(light: 0xFBF8F1, dark: 0x171614))
+        XCTAssertEqual(Palette.mutedInk, ThemedColor(light: 0x615D55, dark: 0xA9A499))
+        XCTAssertEqual(Palette.perforation, ThemedColor(light: 0xB5B0A5, dark: 0x4A463F))
+        XCTAssertEqual(Palette.stamp, ThemedColor(light: 0xD0342C, dark: 0xFF6B5E))
+        XCTAssertEqual(Palette.highlighterInk, HexColor(0x141414))
     }
 
-    /// The asset catalog repeats the accent colour for the system (alerts, the
-    /// launch screen); this keeps it equal to the palette.
-    func testAccentColorAssetMatchesThePalette() throws {
+    /// The asset catalog repeats the ink colour as the accent for the system
+    /// (alerts, menus); this keeps it equal to the palette.
+    func testAccentColorAssetIsTheInk() throws {
         struct ColorSet: Decodable {
             struct Entry: Decodable {
                 struct Appearance: Decodable { let value: String }
@@ -84,33 +85,31 @@ final class PaletteTests: XCTestCase {
         }
         let light = try XCTUnwrap(colorSet.colors.first { $0.appearances == nil })
         let dark = try XCTUnwrap(colorSet.colors.first { $0.appearances?.first?.value == "dark" })
-        XCTAssertEqual(ThemedColor(light: try hex(light), dark: try hex(dark)), Palette.accent)
+        XCTAssertEqual(ThemedColor(light: try hex(light), dark: try hex(dark)), Palette.ink)
     }
 
-    func testTintsMatchTheDesignTable() {
-        // Key: background, ink, dark background, dark ink (docs/design.md).
-        let table: [(GroupColor, UInt32, UInt32, UInt32, UInt32)] = [
-            (.blue, 0xDCF1FF, 0x0A3A80, 0x12305C, 0xCFE6FF),
-            (.amber, 0xFFF1CF, 0x7A3E00, 0x4A3206, 0xFFE2A6),
-            (.teal, 0xD5F3F1, 0x0B4F4A, 0x0E3D3A, 0xBDEEEA),
-            (.rose, 0xFFE1EC, 0x8A1846, 0x52142E, 0xFFC9DC),
-            (.green, 0xDCFAE5, 0x0B4A22, 0x113D20, 0xC2F2D0),
-            (.coral, 0xFFE4DC, 0x8A2B12, 0x52200F, 0xFFCDBF),
-            (.lime, 0xECF6CC, 0x3F5200, 0x2F3B08, 0xE0F0A8),
-            (.slate, 0xE9EDF2, 0x2F3A46, 0x2A3138, 0xD7DEE6),
+    func testHighlightersMatchTheDesignTable() {
+        // In palette order: this order decides every member's colour (docs/design.md).
+        let table: [(GroupColor, UInt32)] = [
+            (.amber, 0xFFF04A), (.rose, 0xFF8CCF), (.green, 0x8AF0AE), (.coral, 0xFFAE5C),
+            (.blue, 0x8FD4FF), (.lime, 0xD2F25A), (.teal, 0x74E6DA), (.slate, 0xD8D4C9),
         ]
-        XCTAssertEqual(table.map(\.0), GroupColor.allCases, "The palette order decides member tints")
-        for (color, background, ink, darkBackground, darkInk) in table {
-            XCTAssertEqual(color.tint.background, ThemedColor(light: background, dark: darkBackground), color.rawValue)
-            XCTAssertEqual(color.tint.ink, ThemedColor(light: ink, dark: darkInk), color.rawValue)
+        XCTAssertEqual(table.map(\.0), GroupColor.allCases)
+        XCTAssertEqual(GroupColor.allCases.map(\.rawValue), ["amber", "rose", "green", "coral", "blue", "lime", "teal", "slate"])
+        for (color, hex) in table {
+            XCTAssertEqual(color.highlighter, HexColor(hex), color.rawValue)
         }
+        XCTAssertEqual(Set(GroupColor.allCases.map(\.title)).count, 8)
     }
 
-    func testMemberTintWrapsAroundThePalette() {
-        XCTAssertEqual(GroupColor.palette(at: 0), .blue)
+    func testMemberColourWrapsAroundThePalette() {
+        XCTAssertEqual(GroupColor.palette(at: 0), .amber)
+        XCTAssertEqual(GroupColor.palette(at: 1), .rose)
         XCTAssertEqual(GroupColor.palette(at: 7), .slate)
-        XCTAssertEqual(GroupColor.palette(at: 8), .blue)
-        XCTAssertEqual(GroupColor.palette(at: 10), .teal)
+        XCTAssertEqual(GroupColor.palette(at: 8), .amber)
+        XCTAssertEqual(GroupColor.palette(at: 10), .green)
+        XCTAssertEqual(Fixtures.group.color(ofMember: Fixtures.chris.id), .green)
+        XCTAssertEqual(Fixtures.group.color(ofMember: "unknown"), .amber)
     }
 
     func testHexComponents() {
@@ -123,14 +122,6 @@ final class PaletteTests: XCTestCase {
     func testUnknownColourFallsBackToSlate() throws {
         let colors = try JSONDecoder().decode([GroupColor].self, from: Data(#"["teal","magenta"]"#.utf8))
         XCTAssertEqual(colors, [.teal, .slate])
-    }
-
-    func testInitials() {
-        XCTAssertEqual(Initials.of("Weekendje Texel"), "WT")
-        XCTAssertEqual(Initials.of("Anna"), "A")
-        XCTAssertEqual(Initials.of("  huis  aan de gracht "), "HA")
-        XCTAssertEqual(Initials.of("élise"), "É")
-        XCTAssertEqual(Initials.of(""), "")
     }
 }
 
@@ -151,9 +142,7 @@ final class WordingTests: XCTestCase {
         XCTAssertNil(Wording.expenseImpact(nil))
     }
 
-    func testNamesAndCounts() {
-        XCTAssertEqual(Wording.memberName("Anna", isMe: true), "Anna (jij)")
-        XCTAssertEqual(Wording.memberName("Bas", isMe: false), "Bas")
+    func testCountsAndIBAN() {
         XCTAssertEqual(Wording.memberCount(1), "1 lid")
         XCTAssertEqual(Wording.memberCount(4), "4 leden")
         XCTAssertEqual(Wording.groupedIBAN("NL91ABNA0417164300"), "NL91 ABNA 0417 1643 00")

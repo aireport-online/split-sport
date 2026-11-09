@@ -9,7 +9,7 @@ struct RootView: View {
     var body: some View {
         switch session.phase {
         case .launching:
-            ProgressView("Laden…")
+            LoadingView()
         case .unreachable(let message):
             UnreachableView(session: session, message: message)
         case .signedOut:
@@ -27,17 +27,22 @@ private struct UnreachableView: View {
     let message: String
 
     var body: some View {
-        ContentUnavailableView {
-            Label("Geen verbinding", systemImage: "wifi.slash")
-        } description: {
-            Text(message)
-        } actions: {
-            Button("Opnieuw proberen") {
-                Task { await session.restore() }
-            }
-            .buttonStyle(PrimaryButtonStyle())
-            Button("Uitloggen") {
-                session.forgetSession()
+        Desk {
+            Wordmark()
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+            Receipt {
+                ReceiptTitle(text: "Geen verbinding")
+                Text(message)
+                    .foregroundStyle(Theme.mutedInk)
+                Button("Opnieuw proberen") {
+                    Task { await session.restore() }
+                }
+                .buttonStyle(PaperButtonStyle(kind: .primary))
+                LinkButton(title: "Uitloggen") {
+                    session.forgetSession()
+                }
+                .frame(maxWidth: .infinity)
             }
         }
     }

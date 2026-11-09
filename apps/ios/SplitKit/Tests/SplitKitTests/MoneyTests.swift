@@ -37,21 +37,34 @@ final class MoneyTests: XCTestCase {
         XCTAssertEqual(Money.parse("90071992547409,91"), 9_007_199_254_740_991)
     }
 
-    func testFormatsDutchEuros() {
-        XCTAssertEqual(Money.format(123_456), "€\u{00A0}1.234,56")
-        XCTAssertEqual(Money.format(1250), "€\u{00A0}12,50")
-        XCTAssertEqual(Money.format(5), "€\u{00A0}0,05")
-        XCTAssertEqual(Money.format(0), "€\u{00A0}0,00")
-        XCTAssertEqual(Money.format(100_000), "€\u{00A0}1.000,00")
-        XCTAssertEqual(Money.format(99_999_999), "€\u{00A0}999.999,99")
-        XCTAssertEqual(Money.format(123_456_789_012), "€\u{00A0}1.234.567.890,12")
-        XCTAssertEqual(Money.format(-800), "€\u{00A0}-8,00")
+    func testPlainAmountsAsATillPrintsThem() {
+        XCTAssertEqual(Money.plain(123_456), "1.234,56")
+        XCTAssertEqual(Money.plain(1250), "12,50")
+        XCTAssertEqual(Money.plain(5), "0,05")
+        XCTAssertEqual(Money.plain(0), "0,00")
+        XCTAssertEqual(Money.plain(100_000), "1.000,00")
+        XCTAssertEqual(Money.plain(99_999_999), "999.999,99")
+        XCTAssertEqual(Money.plain(123_456_789_012), "1.234.567.890,12")
+        XCTAssertEqual(Money.plain(-800), "8,00", "The sign is left to signedPlain")
     }
 
-    func testFormatsSignedBalances() {
-        XCTAssertEqual(Money.formatSigned(1250), "+\u{00A0}€\u{00A0}12,50")
-        XCTAssertEqual(Money.formatSigned(-800), "−\u{00A0}€\u{00A0}8,00")
-        XCTAssertEqual(Money.formatSigned(0), "€\u{00A0}0,00")
+    func testSignedPlainBalances() {
+        XCTAssertEqual(Money.signedPlain(2495), "+\u{00A0}24,95")
+        XCTAssertEqual(Money.signedPlain(-2160), "\u{2212}\u{00A0}21,60")
+        XCTAssertEqual(Money.signedPlain(0), "0,00")
+    }
+
+    func testAmountsWithTheEuroSign() {
+        XCTAssertEqual(Money.euro(123_456), "€\u{00A0}1.234,56")
+        XCTAssertEqual(Money.euro(8400), "€\u{00A0}84,00")
+        XCTAssertEqual(Money.euro(0), "€\u{00A0}0,00")
+        XCTAssertEqual(Money.euro(-800), "€\u{00A0}8,00")
+    }
+
+    func testSignedEuroHeadlineFigures() {
+        XCTAssertEqual(Money.signedEuro(10_955), "+\u{00A0}€\u{00A0}109,55")
+        XCTAssertEqual(Money.signedEuro(-800), "\u{2212}\u{00A0}€\u{00A0}8,00")
+        XCTAssertEqual(Money.signedEuro(0), "€\u{00A0}0,00")
     }
 
     func testEditingTextParsesBackToTheSameAmount() {

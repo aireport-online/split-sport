@@ -18,45 +18,40 @@ struct GroupSettingsSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                nameSection
-                Section("Kleur") {
-                    TintPicker(selection: colorBinding)
+            Desk {
+                nameReceipt
+                Receipt {
+                    ReceiptTitle(text: "Kleur")
+                    HighlighterPicker(selection: colorBinding)
                 }
-                .listRowBackground(Theme.surface)
-                membersSection
-                inviteSection
+                membersReceipt
+                inviteReceipt
                 if let message = model.errorMessage {
-                    Section {
-                        ErrorRow(message: message)
-                    }
-                    .listRowBackground(Theme.surface)
+                    ErrorBanner(message: message)
                 }
-                Section {
-                    Button("Groep verlaten", role: .destructive) {
-                        isConfirmingLeave = true
-                    }
-                    .disabled(model.isWorking)
+                Button("Groep verlaten") {
+                    isConfirmingLeave = true
                 }
-                .listRowBackground(Theme.surface)
+                .buttonStyle(PaperButtonStyle(kind: .destructive))
+                .disabled(model.isWorking)
             }
-            .themedList()
             .navigationTitle("Groepsinstellingen")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Gereed") { dismiss() }
+                        .font(.buttonLabel)
                 }
             }
             .alert("Lid hernoemen", isPresented: isRenaming) {
                 TextField("Naam", text: $renameText)
-                Button("Bewaar") {
+                Button("Opslaan") {
                     if let member = memberToRename {
                         Task { await model.renameMember(id: member.id, to: renameText) }
                     }
                     memberToRename = nil
                 }
-                Button("Annuleer", role: .cancel) {
+                Button("Annuleren", role: .cancel) {
                     memberToRename = nil
                 }
             }
@@ -64,85 +59,75 @@ struct GroupSettingsSheet: View {
                 Button("Verlaat groep", role: .destructive) {
                     Task { await leave() }
                 }
-                Button("Annuleer", role: .cancel) {}
+                Button("Annuleren", role: .cancel) {}
             } message: {
                 Text("Je uitgaven blijven in de groep staan, zodat de saldo's van de anderen kloppen.")
             }
         }
     }
 
-    private var nameSection: some View {
-        Section("Naam") {
-            HStack {
-                TextField("Naam van de groep", text: $model.name)
-                    .onSubmit {
-                        Task { await model.saveName() }
-                    }
-                Button("Bewaar") {
-                    Task { await model.saveName() }
-                }
-                .buttonStyle(.borderless)
-                .disabled(!model.canSaveName)
+    private var nameReceipt: some View {
+        Receipt {
+            PaperField(label: "Naam", text: $model.name)
+            Button("Opslaan") {
+                Task { await model.saveName() }
             }
+            .buttonStyle(PaperButtonStyle(isCompact: true))
+            .disabled(!model.canSaveName)
         }
-        .listRowBackground(Theme.surface)
     }
 
-    private var membersSection: some View {
-        Section("Leden") {
+    private var membersReceipt: some View {
+        Receipt {
+            ReceiptTitle(text: "Leden")
             ForEach(model.memberRows) { row in
                 memberRow(row)
             }
-            HStack {
-                TextField("Naam van nieuw lid", text: $model.newMemberName)
-                    .textContentType(.name)
-                    .onSubmit {
-                        Task { await model.addMember() }
-                    }
-                Button("Voeg toe") {
-                    Task { await model.addMember() }
-                }
-                .buttonStyle(.borderless)
-                .disabled(!model.canAddMember)
+            Perforation()
+            PaperField(label: "Nieuw lid", text: $model.newMemberName, kind: .name)
+            Button("Voeg toe") {
+                Task { await model.addMember() }
             }
+            .buttonStyle(PaperButtonStyle(isCompact: true))
+            .disabled(!model.canAddMember)
         }
-        .listRowBackground(Theme.surface)
     }
 
-    private var inviteSection: some View {
-        Section {
-            LabeledContent("Code") {
-                Text(model.detail.inviteCode)
-                    .font(.body.monospaced())
-                    .textSelection(.enabled)
+    private var inviteReceipt: some View {
+        Receipt {
+            ReceiptTitle(text: "Uitnodigen")
+            LeaderRow(amount: model.detail.inviteCode) {
+                Text("Code")
             }
-            ShareLink(item: model.inviteURL) {
-                Label("Deel uitnodiging", systemImage: "square.and.arrow.up")
-            }
-        } header: {
-            Text("Uitnodigen")
-        } footer: {
+            .font(.tillBold)
+            .textSelection(.enabled)
             Text("Iedereen met de link of de code kan deelnemen aan deze groep.")
+                .font(.tillSmall)
+                .foregroundStyle(Theme.mutedInk)
+            ShareLink(item: model.inviteURL) {
+                Text("Deel uitnodiging")
+            }
+            .buttonStyle(PaperButtonStyle())
         }
-        .listRowBackground(Theme.surface)
     }
 
     private func memberRow(_ row: GroupSettingsViewModel.MemberRow) -> some View {
-        HStack(spacing: 12) {
-            InitialsBadge(initials: row.initials, color: row.tint, outline: .circle, side: 32)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(row.displayName)
-                if !row.hasAccount {
-                    Text("geen account")
-                        .font(.footnote)
-                        .foregroundStyle(Theme.mutedText)
-                }
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Highlight(name: row.name, color: row.color)
+            if row.isMe {
+                Text("(jij)")
+                    .font(.tillSmall)
+                    .foregroundStyle(Theme.mutedInk)
+            }
+            if !row.hasAccount {
+                DashedPill(text: "geen account")
             }
             Spacer(minLength: 8)
             if row.isEditable {
                 memberMenu(row)
             }
         }
+        .frame(minHeight: 32)
     }
 
     /// Rename or remove: only offered for members without an account.
@@ -160,7 +145,9 @@ struct GroupSettingsSheet: View {
                 Label("Verwijder", systemImage: "trash")
             }
         } label: {
-            Image(systemName: "ellipsis.circle")
+            Image(systemName: "ellipsis")
+                .frame(width: 32, height: 32)
+                .contentShape(Rectangle())
         }
         .accessibilityLabel("Acties voor \(row.name)")
     }

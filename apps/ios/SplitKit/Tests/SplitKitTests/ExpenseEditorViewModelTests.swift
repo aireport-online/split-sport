@@ -39,7 +39,7 @@ final class ExpenseEditorViewModelTests: XCTestCase {
         let model = makeModel()
         model.amountText = "10"
         XCTAssertEqual(amounts(model), [anna: 334, bas: 333, chris: 333])
-        XCTAssertEqual(model.previewAmount(for: anna), "€\u{00A0}3,34")
+        XCTAssertEqual(model.previewAmount(for: anna), "3,34")
 
         model.toggleEqualMember(bas)
         XCTAssertEqual(amounts(model), [anna: 500, chris: 500])
@@ -53,12 +53,15 @@ final class ExpenseEditorViewModelTests: XCTestCase {
         XCTAssertEqual(amounts(model), [bas: 1000])
     }
 
-    func testPreviewNamesMarkYourself() {
+    func testPreviewCarriesNamesHighlightersAndTheTotal() {
         let model = makeModel()
+        XCTAssertNil(model.totalText)
         model.amountText = "9"
         guard case .shares(let shares) = model.preview else { return XCTFail("Expected shares") }
-        XCTAssertEqual(shares.map(\.name), ["Anna (jij)", "Bas", "Chris"])
-        XCTAssertEqual(shares.map(\.amount), Array(repeating: "€\u{00A0}3,00", count: 3))
+        XCTAssertEqual(shares.map(\.name), ["Anna", "Bas", "Chris"])
+        XCTAssertEqual(shares.map(\.color), [.amber, .rose, .green])
+        XCTAssertEqual(shares.map(\.amount), Array(repeating: "3,00", count: 3))
+        XCTAssertEqual(model.totalText, "€\u{00A0}9,00")
     }
 
     func testAnUnreadableAmountIsReported() {
@@ -221,6 +224,9 @@ final class ExpenseEditorViewModelTests: XCTestCase {
         XCTAssertEqual(model.items[0].memberIds, [bas, chris])
         model.toggleMember(anna, inItem: first)
         XCTAssertEqual(model.items[0].memberIds, [anna, bas, chris])
+        model.toggleMember(bas, inItem: first)
+        XCTAssertEqual(model.colors(of: model.items[0]), [.amber, .green], "A line is swiped in member order")
+        XCTAssertEqual(model.colors(of: .init(memberIds: [])), [])
         model.removeItem(id: first)
         XCTAssertEqual(model.items.count, 1)
     }

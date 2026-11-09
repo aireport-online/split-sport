@@ -21,13 +21,14 @@ public final class GroupsViewModel {
         groups.reduce(0) { $0 + $1.myBalanceCents }
     }
 
-    /// The balance over all groups in words, e.g. "Je krijgt € 12,50".
-    public var totalBalanceText: String {
-        Wording.ownBalance(totalBalanceCents)
+    /// The headline of the "Jouw saldo" receipt: "+ € 109,55".
+    public var totalBalanceFigure: String {
+        Money.signedEuro(totalBalanceCents)
     }
 
-    public var totalBalanceSign: Wording.BalanceSign {
-        Wording.BalanceSign(cents: totalBalanceCents)
+    /// The same balance in words, e.g. "Je krijgt € 12,50".
+    public var totalBalanceText: String {
+        Wording.ownBalance(totalBalanceCents)
     }
 
     public func load() async {

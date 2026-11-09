@@ -14,49 +14,44 @@ struct ExpenseEditorSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                detailsSection
+            Desk {
+                detailsReceipt
                 if model.canScanReceipt {
-                    ReceiptScanSection(model: model)
+                    ReceiptScanReceipt(model: model)
                 }
-                modeSection
-                splitSection
-                PerPersonSection(preview: model.preview)
+                splitReceipt
+                PerPersonReceipt(preview: model.preview, total: model.totalText)
                 if let message = model.errorMessage {
-                    Section {
-                        ErrorRow(message: message)
-                    }
-                    .listRowBackground(Theme.surface)
+                    ErrorBanner(message: message)
                 }
                 if model.isEditing {
-                    Section {
-                        Button("Verwijderen", role: .destructive) {
-                            isConfirmingDelete = true
-                        }
-                        .disabled(model.isSaving)
+                    Button("Verwijderen") {
+                        isConfirmingDelete = true
                     }
-                    .listRowBackground(Theme.surface)
+                    .buttonStyle(PaperButtonStyle(kind: .destructive))
+                    .disabled(model.isSaving)
                 }
             }
-            .themedList()
-            .navigationTitle(model.isEditing ? "Uitgave" : "Nieuwe uitgave")
+            .navigationTitle(model.isEditing ? "Uitgave" : "Uitgave toevoegen")
             .navigationBarTitleDisplayMode(.inline)
             .interactiveDismissDisabled(model.isSaving || model.isScanning)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuleer") { dismiss() }
+                    Button("Annuleren") { dismiss() }
+                        .font(.buttonLabel)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    if model.isSaving {
-                        ProgressView()
-                    } else {
-                        Button("Bewaar") {
-                            Task {
-                                if await model.save() { dismiss() }
-                            }
+            }
+            .safeAreaInset(edge: .bottom) {
+                BottomBar {
+                    Button {
+                        Task {
+                            if await model.save() { dismiss() }
                         }
-                        .disabled(!model.canSave)
+                    } label: {
+                        BusyLabel(title: "Opslaan", isBusy: model.isSaving)
                     }
+                    .buttonStyle(PaperButtonStyle(kind: .primary))
+                    .disabled(!model.canSave)
                 }
             }
             .confirmationDialog("Uitgave verwijderen?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
@@ -65,50 +60,39 @@ struct ExpenseEditorSheet: View {
                         if await model.delete() { dismiss() }
                     }
                 }
-                Button("Annuleer", role: .cancel) {}
+                Button("Annuleren", role: .cancel) {}
             }
         }
     }
 
-    private var detailsSection: some View {
-        Section {
-            TextField("Omschrijving", text: $model.description)
-            LabeledContent("Bedrag") {
-                AmountField(label: "Bedrag", text: $model.amountText)
-            }
+    /// Omschrijving, bedrag, betaald door and datum.
+    private var detailsReceipt: some View {
+        Receipt {
+            PaperField(label: "Omschrijving", text: $model.description)
+            AmountField(label: "Bedrag", text: $model.amountText, style: .figure)
+            MemberMenu(label: "Betaald door", members: model.members, selection: $model.paidById)
             DatePicker("Datum", selection: dateBinding, displayedComponents: .date)
-            Picker("Betaald door", selection: $model.paidById) {
-                ForEach(model.members) { member in
-                    Text(model.memberName(member.id)).tag(member.id)
-                }
-            }
         }
-        .listRowBackground(Theme.surface)
     }
 
-    private var modeSection: some View {
-        Section("Verdeling") {
-            Picker("Verdeling", selection: $model.mode) {
-                ForEach(SplitMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
-                }
+    /// "Verdeling": the four ways to divide the expense.
+    private var splitReceipt: some View {
+        Receipt {
+            SegmentedControl(
+                label: "Verdeling",
+                options: SplitMode.allCases.map { (value: $0, title: $0.title) },
+                selection: $model.mode
+            )
+            switch model.mode {
+            case .equal:
+                EqualSplitRows(model: model)
+            case .exact:
+                ExactSplitRows(model: model)
+            case .shares:
+                SharesSplitRows(model: model)
+            case .items:
+                ItemsSplitRows(model: model)
             }
-            .pickerStyle(.segmented)
-        }
-        .listRowBackground(Theme.surface)
-    }
-
-    @ViewBuilder
-    private var splitSection: some View {
-        switch model.mode {
-        case .equal:
-            EqualSplitSection(model: model)
-        case .exact:
-            ExactSplitSection(model: model)
-        case .shares:
-            SharesSplitSection(model: model)
-        case .items:
-            ItemsSplitSection(model: model)
         }
     }
 
@@ -120,26 +104,37 @@ struct ExpenseEditorSheet: View {
     }
 }
 
-/// The live "Per persoon" summary from the local `computeShares`.
+/// The live "Per persoon" summary from the local `computeShares`, with the total below it.
 @MainActor
-private struct PerPersonSection: View {
+private struct PerPersonReceipt: View {
     let preview: ExpenseEditorViewModel.Preview
+    let total: String?
 
     var body: some View {
-        Section("Per persoon") {
+        Receipt {
+            ReceiptTitle(text: "Per persoon")
             switch preview {
             case .shares(let shares):
                 ForEach(shares) { share in
-                    LabeledContent(share.name) {
-                        Text(share.amount)
-                            .monospacedDigit()
+                    LeaderRow(amount: share.amount) {
+                        Highlight(name: share.name, color: share.color)
                     }
+                    .accessibilityElement(children: .combine)
+                }
+                if let total {
+                    Perforation()
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("TOTAAL")
+                        Spacer(minLength: 8)
+                        Text(total)
+                            .font(.tillTotal)
+                    }
+                    .accessibilityElement(children: .combine)
                 }
             case .incomplete(let message):
                 Text(message)
-                    .foregroundStyle(Theme.mutedText)
+                    .foregroundStyle(Theme.mutedInk)
             }
         }
-        .listRowBackground(Theme.surface)
     }
 }

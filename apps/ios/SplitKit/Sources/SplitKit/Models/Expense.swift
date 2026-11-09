@@ -4,10 +4,8 @@ public enum ExpenseKind: String, Codable, Sendable {
     case expense, settlement
 }
 
-public enum SplitMode: String, Codable, CaseIterable, Identifiable, Sendable {
+public enum SplitMode: String, Codable, CaseIterable, Sendable {
     case equal, exact, shares, items
-
-    public var id: String { rawValue }
 
     /// The name of the mode in the "Verdeling" picker.
     public var title: String {

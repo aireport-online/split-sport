@@ -94,8 +94,8 @@ final class GroupsViewModelTests: XCTestCase {
         XCTAssertTrue(model.hasLoaded)
         XCTAssertEqual(model.groups.map(\.id), ["g1", "g2"])
         XCTAssertEqual(model.totalBalanceCents, 1250)
+        XCTAssertEqual(model.totalBalanceFigure, "+\u{00A0}€\u{00A0}12,50")
         XCTAssertEqual(model.totalBalanceText, "Je krijgt €\u{00A0}12,50")
-        XCTAssertEqual(model.totalBalanceSign, .positive)
         XCTAssertFalse(model.isLoading)
     }
 
@@ -103,6 +103,7 @@ final class GroupsViewModelTests: XCTestCase {
         let model = GroupsViewModel(api: api)
         await model.load()
         XCTAssertTrue(model.groups.isEmpty)
+        XCTAssertEqual(model.totalBalanceFigure, "€\u{00A0}0,00")
         XCTAssertEqual(model.totalBalanceText, "Je staat quitte")
     }
 
@@ -134,8 +135,8 @@ final class NewGroupViewModelTests: XCTestCase {
     private let api = FakeAPI()
 
     func testOffersTheNextColourOfThePalette() {
-        XCTAssertEqual(NewGroupViewModel(api: api, existingGroupCount: 0).color, .blue)
-        XCTAssertEqual(NewGroupViewModel(api: api, existingGroupCount: 9).color, .amber)
+        XCTAssertEqual(NewGroupViewModel(api: api, existingGroupCount: 0).color, .amber)
+        XCTAssertEqual(NewGroupViewModel(api: api, existingGroupCount: 9).color, .rose)
     }
 
     func testCreatesTheGroup() async {
@@ -198,36 +199,54 @@ final class GroupDetailViewModelTests: XCTestCase {
         ]
         let model = makeModel()
         await model.load()
-        let rows = model.expenseRows
+        let rows = try XCTUnwrap(model.expenseMonths.first).rows
 
         XCTAssertEqual(rows[0].title, "Boodschappen")
-        XCTAssertEqual(rows[0].subtitle, "Anna betaalde · 2 nov")
-        XCTAssertEqual(rows[0].amount, "€\u{00A0}30,00")
+        XCTAssertEqual(rows[0].amount, "30,00", "Receipt lines print amounts without the euro sign")
+        XCTAssertEqual(rows[0].payerName, "Anna")
+        XCTAssertEqual(rows[0].payerColor, .amber)
+        XCTAssertEqual(rows[0].detail, "betaalde · 2 nov")
         XCTAssertEqual(rows[0].impact, "je krijgt €\u{00A0}20,00")
-        XCTAssertEqual(rows[0].impactSign, .positive)
 
+        XCTAssertEqual(rows[1].payerColor, .rose)
         XCTAssertEqual(rows[1].impact, "je betaalt €\u{00A0}3,33")
-        XCTAssertEqual(rows[1].impactSign, .negative)
 
         XCTAssertNil(rows[2].impact, "Nothing is shown when you are not in the expense")
 
         XCTAssertTrue(rows[3].isSettlement)
         XCTAssertEqual(rows[3].title, "Bas betaalde Anna")
-        XCTAssertEqual(rows[3].subtitle, "2 nov")
+        XCTAssertEqual(rows[3].payerName, "Bas")
+        XCTAssertEqual(rows[3].detail, "betaling · 2 nov")
         XCTAssertNil(rows[3].impact)
     }
 
-    func testBalanceRowsUseTheMemberOrderForTints() async {
+    func testExpensesAreGroupedByMonthNewestFirst() async {
+        api.expensesResult = [
+            Fixtures.expense(id: "e1", date: CalendarDay(year: 2026, month: 11, day: 9)),
+            Fixtures.expense(id: "e2", date: CalendarDay(year: 2026, month: 11, day: 1)),
+            Fixtures.expense(id: "e3", date: CalendarDay(year: 2026, month: 10, day: 28)),
+            Fixtures.expense(id: "e4", date: CalendarDay(year: 2025, month: 11, day: 3)),
+        ]
+        let model = makeModel()
+        await model.load()
+        let months = model.expenseMonths
+
+        XCTAssertEqual(months.map(\.heading), ["NOVEMBER 2026", "OKTOBER 2026", "NOVEMBER 2025"])
+        XCTAssertEqual(months.map { $0.rows.map(\.id) }, [["e1", "e2"], ["e3"], ["e4"]])
+        XCTAssertEqual(Set(months.map(\.id)).count, 3)
+    }
+
+    func testBalanceRowsUseTheMemberOrderForHighlighters() async {
         let model = makeModel()
         await model.load()
         let rows = model.balanceRows
 
-        XCTAssertEqual(rows.map(\.name), ["Anna (jij)", "Bas", "Chris"])
-        XCTAssertEqual(rows.map(\.tint), [.blue, .amber, .teal])
-        XCTAssertEqual(rows.map(\.initials), ["A", "B", "C"])
+        XCTAssertEqual(rows.map(\.name), ["Anna", "Bas", "Chris"])
+        XCTAssertEqual(rows.map(\.isMe), [true, false, false])
+        XCTAssertEqual(rows.map(\.color), [.amber, .rose, .green])
         XCTAssertEqual(rows.map(\.hasAccount), [true, true, false])
-        XCTAssertEqual(rows.map(\.balance), ["krijgt €\u{00A0}20,00", "betaalt €\u{00A0}10,00", "betaalt €\u{00A0}10,00"])
-        XCTAssertEqual(rows.map(\.sign), [.positive, .negative, .negative])
+        XCTAssertEqual(rows.map(\.balance), ["+\u{00A0}20,00", "\u{2212}\u{00A0}10,00", "\u{2212}\u{00A0}10,00"])
+        XCTAssertEqual(rows.map(\.spokenBalance), ["krijgt €\u{00A0}20,00", "betaalt €\u{00A0}10,00", "betaalt €\u{00A0}10,00"])
     }
 
     func testTransferRowsShowTheReceiversIBAN() async {
@@ -235,10 +254,14 @@ final class GroupDetailViewModelTests: XCTestCase {
         await model.load()
         let rows = model.transferRows
 
-        XCTAssertEqual(rows.map(\.text), ["Bas betaalt Anna €\u{00A0}10,00", "Chris betaalt Anna €\u{00A0}10,00"])
+        XCTAssertEqual(rows.map(\.payerName), ["Bas", "Chris"])
+        XCTAssertEqual(rows.map(\.payerColor), [.rose, .green])
+        XCTAssertEqual(rows.map(\.receiverName), ["Anna", "Anna"])
+        XCTAssertEqual(rows.map(\.receiverColor), [.amber, .amber])
+        XCTAssertEqual(rows.map(\.amount), ["10,00", "10,00"])
+        XCTAssertEqual(rows.map(\.spoken), ["Bas betaalt Anna €\u{00A0}10,00", "Chris betaalt Anna €\u{00A0}10,00"])
         XCTAssertEqual(rows[0].iban, "NL91ABNA0417164300")
         XCTAssertEqual(rows[0].ibanText, "NL91 ABNA 0417 1643 00")
-        XCTAssertEqual(rows[0].receiverName, "Anna")
         XCTAssertEqual(Set(rows.map(\.id)).count, 2)
     }
 
@@ -248,7 +271,7 @@ final class GroupDetailViewModelTests: XCTestCase {
         await model.load()
         XCTAssertNil(model.detail)
         XCTAssertEqual(model.errorMessage, "Deze groep bestaat niet of je bent er geen lid van.")
-        XCTAssertTrue(model.expenseRows.isEmpty)
+        XCTAssertTrue(model.expenseMonths.isEmpty)
     }
 
     func testDeletingAnExpenseReloadsTheGroup() async {
@@ -291,9 +314,10 @@ final class GroupSettingsViewModelTests: XCTestCase {
 
     func testMemberRowsMarkWhoCanBeEdited() {
         let rows = makeModel().memberRows
-        XCTAssertEqual(rows.map(\.displayName), ["Anna (jij)", "Bas", "Chris"])
+        XCTAssertEqual(rows.map(\.name), ["Anna", "Bas", "Chris"])
+        XCTAssertEqual(rows.map(\.isMe), [true, false, false])
         XCTAssertEqual(rows.map(\.isEditable), [false, false, true])
-        XCTAssertEqual(rows.map(\.tint), [.blue, .amber, .teal])
+        XCTAssertEqual(rows.map(\.color), [.amber, .rose, .green])
     }
 
     func testRenamesTheGroup() async {

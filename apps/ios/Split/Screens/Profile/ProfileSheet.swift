@@ -14,59 +14,47 @@ struct ProfileSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    LabeledContent("Naam") {
-                        TextField("Naam", text: $model.name)
-                            .textContentType(.name)
-                            .multilineTextAlignment(.trailing)
-                    }
-                    LabeledContent("E-mail", value: model.email)
-                }
-                .listRowBackground(Theme.surface)
-
-                Section {
-                    TextField("IBAN", text: $model.iban)
-                        .textInputAutocapitalization(.characters)
-                        .autocorrectionDisabled()
-                        .font(.body.monospaced())
-                } header: {
-                    Text("IBAN")
-                } footer: {
+            Desk {
+                Receipt {
+                    PaperField(label: "Naam", text: $model.name, kind: .name)
+                    ReadOnlyField(label: "E-mail", value: model.email)
+                    PaperField(label: "IBAN", text: $model.iban, kind: .code)
                     Text("Zodat anderen weten waar ze kunnen betalen.")
+                        .font(.tillSmall)
+                        .foregroundStyle(Theme.mutedInk)
                 }
-                .listRowBackground(Theme.surface)
-
                 if let message = model.errorMessage {
-                    Section {
-                        ErrorRow(message: message)
-                    }
-                    .listRowBackground(Theme.surface)
+                    ErrorBanner(message: message)
                 }
-
-                Section {
+                Receipt {
                     Button("Uitloggen") {
                         dismiss()
                         Task { await model.signOut() }
                     }
-                    Button("Account verwijderen", role: .destructive) {
+                    .buttonStyle(PaperButtonStyle())
+                    LinkButton(title: "Account verwijderen", isDestructive: true) {
                         isConfirmingDelete = true
                     }
+                    .frame(maxWidth: .infinity)
                 }
-                .listRowBackground(Theme.surface)
                 .disabled(model.isWorking)
             }
-            .themedList()
             .navigationTitle("Profiel")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Sluit") { dismiss() }
+                    Button("Sluiten") { dismiss() }
+                        .font(.buttonLabel)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Bewaar") {
+            }
+            .safeAreaInset(edge: .bottom) {
+                BottomBar {
+                    Button {
                         Task { await model.save() }
+                    } label: {
+                        BusyLabel(title: "Opslaan", isBusy: model.isWorking)
                     }
+                    .buttonStyle(PaperButtonStyle(kind: .primary))
                     .disabled(!model.canSave)
                 }
             }
@@ -78,7 +66,7 @@ struct ProfileSheet: View {
                 Button("Verwijder mijn account", role: .destructive) {
                     Task { await model.deleteAccount() }
                 }
-                Button("Annuleer", role: .cancel) {}
+                Button("Annuleren", role: .cancel) {}
             } message: {
                 Text("Je account en je aanmelding bij al je groepen worden verwijderd. Dit kan niet ongedaan worden gemaakt.")
             }

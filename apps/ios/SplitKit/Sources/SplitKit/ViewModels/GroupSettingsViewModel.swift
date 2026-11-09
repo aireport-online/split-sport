@@ -7,12 +7,9 @@ import Observation
 public final class GroupSettingsViewModel {
     public struct MemberRow: Identifiable, Equatable, Sendable {
         public let id: String
-        /// The plain name, for the rename field.
         public let name: String
-        /// "Anna (jij)" for yourself.
-        public let displayName: String
-        public let initials: String
-        public let tint: GroupColor
+        public let color: GroupColor
+        public let isMe: Bool
         public let hasAccount: Bool
         /// Only members without an account can be renamed or removed.
         public var isEditable: Bool { !hasAccount }
@@ -38,13 +35,12 @@ public final class GroupSettingsViewModel {
     }
 
     public var memberRows: [MemberRow] {
-        detail.members.enumerated().map { index, member in
+        detail.members.map { member in
             MemberRow(
                 id: member.id,
                 name: member.name,
-                displayName: Wording.memberName(member.name, isMe: member.id == detail.myMemberId),
-                initials: Initials.of(member.name),
-                tint: GroupColor.palette(at: index),
+                color: detail.color(ofMember: member.id),
+                isMe: member.id == detail.myMemberId,
                 hasAccount: member.hasAccount
             )
         }

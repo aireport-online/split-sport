@@ -7,6 +7,7 @@ struct SplitApp: App {
     @State private var session: AppSession
 
     init() {
+        Theme.applyNavigationBarAppearance()
         let session = AppSession(
             tokenStore: KeychainTokenStore(),
             preferences: UserDefaultsPreferences(),
@@ -18,7 +19,7 @@ struct SplitApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(session: session)
-                .tint(Theme.accent)
+                .tint(Theme.ink)
                 .task { await session.restore() }
                 .onOpenURL { url in
                     // split://join/<code>: the code is shown as soon as someone is logged in.

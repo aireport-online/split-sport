@@ -15,42 +15,45 @@ struct NewGroupSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    HStack(spacing: 12) {
-                        InitialsBadge(initials: Initials.of(model.name), color: model.color, outline: .tile, side: 44)
-                        TextField("Naam, bijvoorbeeld Weekendje Texel", text: $model.name)
+            Desk {
+                Receipt {
+                    PaperField(label: "Naam", text: $model.name)
+                    Text("Bijvoorbeeld je huis, een vakantie of een etentje.")
+                        .font(.tillSmall)
+                        .foregroundStyle(Theme.mutedInk)
+                }
+                Receipt {
+                    ReceiptTitle(text: "Kleur")
+                    HighlighterPicker(selection: $model.color)
+                    if !model.name.isEmpty {
+                        Perforation()
+                        GroupNameText(name: model.name, color: model.color)
                     }
                 }
-                .listRowBackground(Theme.surface)
-
-                Section("Kleur") {
-                    TintPicker(selection: $model.color)
-                }
-                .listRowBackground(Theme.surface)
-
                 if let message = model.errorMessage {
-                    Section {
-                        ErrorRow(message: message)
-                    }
-                    .listRowBackground(Theme.surface)
+                    ErrorBanner(message: message)
                 }
             }
-            .themedList()
             .navigationTitle("Nieuwe groep")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuleer") { dismiss() }
+                    Button("Annuleren") { dismiss() }
+                        .font(.buttonLabel)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Maak groep") {
+            }
+            .safeAreaInset(edge: .bottom) {
+                BottomBar {
+                    Button {
                         Task {
                             if let group = await model.create() {
                                 onCreated(group)
                             }
                         }
+                    } label: {
+                        BusyLabel(title: "Maak groep", isBusy: model.isSaving)
                     }
+                    .buttonStyle(PaperButtonStyle(kind: .primary))
                     .disabled(!model.canSave)
                 }
             }

@@ -49,11 +49,20 @@ public struct CalendarDay: Hashable, Comparable, Sendable {
         return year == referenceYear ? text : "\(text) \(year)"
     }
 
+    /// "NOVEMBER 2026": the heading above the expenses of a month, as a till prints it.
+    public var monthHeading: String {
+        "\(CalendarDay.dutchMonthNames[month - 1].uppercased()) \(year)"
+    }
+
     public static func < (lhs: CalendarDay, rhs: CalendarDay) -> Bool {
         (lhs.year, lhs.month, lhs.day) < (rhs.year, rhs.month, rhs.day)
     }
 
     private static let dutchMonths = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"]
+    private static let dutchMonthNames = [
+        "januari", "februari", "maart", "april", "mei", "juni",
+        "juli", "augustus", "september", "oktober", "november", "december",
+    ]
 
     private static func daysIn(month: Int, year: Int) -> Int {
         switch month {

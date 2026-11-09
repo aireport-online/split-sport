@@ -33,30 +33,13 @@ struct GroupsView: View {
             content
                 .navigationTitle("Groepen")
                 .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
+                    ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             sheet = .profile
                         } label: {
                             Image(systemName: "person.crop.circle")
                         }
                         .accessibilityLabel("Profiel")
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Menu {
-                            Button {
-                                sheet = .newGroup
-                            } label: {
-                                Label("Nieuwe groep", systemImage: "plus")
-                            }
-                            Button {
-                                sheet = .join(code: nil)
-                            } label: {
-                                Label("Deelnemen met code", systemImage: "person.badge.plus")
-                            }
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                        .accessibilityLabel("Groep toevoegen")
                     }
                 }
                 .navigationDestination(for: GroupRoute.self) { route in
@@ -82,34 +65,37 @@ struct GroupsView: View {
     @ViewBuilder
     private var content: some View {
         if model.hasLoaded {
-            List {
-                Section {
-                    TotalBalanceRow(text: model.totalBalanceText, sign: model.totalBalanceSign)
-                }
-                .listRowBackground(Theme.surface)
-
+            Desk {
+                TotalBalanceReceipt(
+                    figure: model.totalBalanceFigure, words: model.totalBalanceText, isZero: model.totalBalanceCents == 0
+                )
                 if let message = model.errorMessage {
-                    Section {
-                        ErrorRow(message: message)
-                    }
-                    .listRowBackground(Theme.surface)
+                    ErrorBanner(message: message)
                 }
-
                 if model.groups.isEmpty {
                     emptyState
                 } else {
-                    Section {
-                        ForEach(model.groups) { group in
-                            NavigationLink(value: GroupRoute(group)) {
-                                GroupRow(group: group)
-                            }
+                    ForEach(model.groups) { group in
+                        NavigationLink(value: GroupRoute(group)) {
+                            GroupReceipt(group: group)
                         }
+                        .buttonStyle(.plain)
                     }
-                    .listRowBackground(Theme.surface)
+                }
+                Button("Deelnemen met code") {
+                    sheet = .join(code: nil)
+                }
+                .buttonStyle(PaperButtonStyle())
+            }
+            .refreshable { await model.load() }
+            .safeAreaInset(edge: .bottom) {
+                BottomBar {
+                    Button("Nieuwe groep") {
+                        sheet = .newGroup
+                    }
+                    .buttonStyle(PaperButtonStyle(kind: .primary))
                 }
             }
-            .themedList()
-            .refreshable { await model.load() }
         } else if let message = model.errorMessage {
             LoadFailedView(message: message) { await model.load() }
         } else {
@@ -118,28 +104,11 @@ struct GroupsView: View {
     }
 
     private var emptyState: some View {
-        Section {
-            VStack(spacing: 16) {
-                Image(systemName: "person.3")
-                    .font(.largeTitle)
-                    .foregroundStyle(Theme.mutedText)
-                    .accessibilityHidden(true)
-                Text("Nog geen groepen. Maak er een voor je huis, vakantie of etentje.")
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(Theme.mutedText)
-                Button("Nieuwe groep") {
-                    sheet = .newGroup
-                }
-                .buttonStyle(PrimaryButtonStyle())
-                Button("Deelnemen met code") {
-                    sheet = .join(code: nil)
-                }
-                .buttonStyle(.borderless)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 24)
+        Receipt {
+            ReceiptTitle(text: "Nog geen groepen")
+            Text("Maak er een voor je huis, vakantie of etentje.")
+                .foregroundStyle(Theme.mutedInk)
         }
-        .listRowBackground(Color.clear)
     }
 
     /// Opens a group that was just created or joined.
@@ -156,48 +125,47 @@ struct GroupsView: View {
     }
 }
 
-/// The balance over all groups, in words.
+/// The "Jouw saldo" receipt: the balance over all groups as a large figure, and in words.
 @MainActor
-private struct TotalBalanceRow: View {
-    let text: String
-    let sign: Wording.BalanceSign
+private struct TotalBalanceReceipt: View {
+    let figure: String
+    let words: String
+    let isZero: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Totaal over alle groepen")
-                .font(.subheadline)
-                .foregroundStyle(Theme.mutedText)
-            Text(text)
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(sign.color)
+        Receipt {
+            Text("Jouw saldo")
+            Text(figure)
+                .font(.tillFigure)
+                .foregroundStyle(isZero ? Theme.mutedInk : Theme.ink)
+                .accessibilityHidden(true)
+            Text(words)
+                .font(.tillSmall)
+                .foregroundStyle(Theme.mutedInk)
         }
-        .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
     }
 }
 
-/// One group: colour tile with initials, name, number of members and your balance.
+/// One group as a small receipt: its name underlined with its highlighter,
+/// the number of members and your balance.
 @MainActor
-private struct GroupRow: View {
+private struct GroupReceipt: View {
     let group: GroupSummary
 
     var body: some View {
-        HStack(spacing: 12) {
-            InitialsBadge(initials: Initials.of(group.name), color: group.color, outline: .tile, side: 44)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(group.name)
-                    .font(.headline)
+        Receipt {
+            GroupNameText(name: group.name, color: group.color)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(Wording.memberCount(group.memberCount))
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.mutedText)
+                    .font(.tillSmall)
+                Spacer(minLength: 8)
+                Text(Money.signedEuro(group.myBalanceCents))
+                    .foregroundStyle(group.myBalanceCents == 0 ? Theme.mutedInk : Theme.ink)
+                    .accessibilityLabel(Wording.ownBalance(group.myBalanceCents))
             }
-            Spacer(minLength: 8)
-            Text(Money.formatSigned(group.myBalanceCents))
-                .font(.callout)
-                .monospacedDigit()
-                .foregroundStyle(Wording.BalanceSign(cents: group.myBalanceCents).color)
         }
-        .padding(.vertical, 2)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 }

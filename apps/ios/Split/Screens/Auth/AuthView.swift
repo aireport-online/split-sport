@@ -6,101 +6,84 @@ import SwiftUI
 struct AuthView: View {
     let session: AppSession
     @State private var model: AuthViewModel
+    /// Whether the "Server" field behind "Geavanceerd" is shown.
+    @State private var showsServer = false
 
     init(session: AppSession) {
         self.session = session
         _model = State(initialValue: AuthViewModel(session: session))
     }
 
+    private var isRegistering: Bool {
+        model.mode == .register
+    }
+
     var body: some View {
-        NavigationStack {
-            Form {
-                modeSection
-                if let notice = session.notice {
-                    Section {
-                        Label(notice, systemImage: "info.circle")
-                            .font(.callout)
-                    }
-                    .listRowBackground(Theme.surface)
-                }
-                credentialsSection
-                serverSection
-                if let message = model.errorMessage {
-                    Section {
-                        ErrorRow(message: message)
-                    }
-                    .listRowBackground(Theme.surface)
-                }
-                submitSection
-            }
-            .themedList()
-            .navigationTitle("Split")
-        }
-    }
+        Desk {
+            Wordmark()
+                .frame(maxWidth: .infinity)
+                .padding(.top, 32)
+                .padding(.bottom, 16)
 
-    private var modeSection: some View {
-        Section {
-            Picker("Wat wil je doen?", selection: $model.mode) {
-                ForEach(AuthViewModel.Mode.allCases) { mode in
-                    Text(mode.title).tag(mode)
-                }
+            if let notice = session.notice {
+                Text(notice)
+                    .font(.tillSmall)
+                    .foregroundStyle(Theme.mutedInk)
             }
-            .pickerStyle(.segmented)
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets())
-        }
-    }
 
-    private var credentialsSection: some View {
-        Section {
-            if model.mode == .register {
-                TextField("Naam", text: $model.name)
-                    .textContentType(.name)
-            }
-            TextField("E-mailadres", text: $model.email)
-                .keyboardType(.emailAddress)
-                .textContentType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            SecureField("Wachtwoord", text: $model.password)
-                .textContentType(model.mode == .register ? .newPassword : .password)
-        } footer: {
-            if model.mode == .register {
-                Text("Kies een wachtwoord van minstens 8 tekens.")
-            }
-        }
-        .listRowBackground(Theme.surface)
-    }
+            fields
 
-    /// The "Server" field behind "Geavanceerd", to point the app at another server.
-    private var serverSection: some View {
-        Section {
-            DisclosureGroup("Geavanceerd") {
-                TextField("Server", text: $model.serverAddress)
-                    .keyboardType(.URL)
-                    .textContentType(.URL)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+            if let message = model.errorMessage {
+                ErrorBanner(message: message)
             }
-        }
-        .listRowBackground(Theme.surface)
-    }
 
-    private var submitSection: some View {
-        Section {
             Button {
                 Task { await model.submit() }
             } label: {
-                HStack {
-                    Text(model.mode.title)
-                        .frame(maxWidth: .infinity)
-                    if model.isSubmitting {
-                        ProgressView()
-                    }
+                BusyLabel(title: model.mode.title, isBusy: model.isSubmitting)
+            }
+            .buttonStyle(PaperButtonStyle(kind: .primary))
+            .disabled(!model.canSubmit)
+
+            modeSwitch
+        }
+    }
+
+    private var fields: some View {
+        Receipt {
+            if isRegistering {
+                PaperField(label: "Naam", text: $model.name, kind: .name)
+            }
+            PaperField(label: "E-mailadres", text: $model.email, kind: .email)
+            PaperField(label: "Wachtwoord", text: $model.password, kind: isRegistering ? .newPassword : .password)
+            if isRegistering {
+                Text("Kies een wachtwoord van minstens 8 tekens.")
+                    .font(.tillSmall)
+                    .foregroundStyle(Theme.mutedInk)
+            }
+            if showsServer {
+                PaperField(label: "Server", text: $model.serverAddress, kind: .url)
+            }
+        }
+    }
+
+    /// "Nog geen account? Account maken", and the way to the "Server" field.
+    private var modeSwitch: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 8) {
+                Text(isRegistering ? "Al een account?" : "Nog geen account?")
+                LinkButton(title: isRegistering ? "Inloggen" : "Account maken") {
+                    model.mode = isRegistering ? .login : .register
+                    model.errorMessage = nil
                 }
             }
-            .disabled(!model.canSubmit)
+            if !showsServer {
+                LinkButton(title: "Geavanceerd") {
+                    showsServer = true
+                }
+                .font(.tillSmall)
+            }
         }
-        .listRowBackground(Theme.surface)
+        .frame(maxWidth: .infinity)
     }
 }

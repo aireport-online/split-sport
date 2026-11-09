@@ -1,15 +1,15 @@
 import Foundation
 
-/// The tint a group is drawn in. The order is the palette order of `docs/design.md`,
-/// which is also how members get their tint (position modulo 8).
+/// The highlighter of a group or a person. The order is the palette order of
+/// `docs/design.md`, which is also how members get their colour (position modulo 8).
 public enum GroupColor: String, CaseIterable, Identifiable, Sendable {
-    case blue, amber, teal, rose, green, coral, lime, slate
+    case amber, rose, green, coral, blue, lime, teal, slate
 
     public var id: String { rawValue }
 }
 
 extension GroupColor: Codable {
-    /// A colour this version does not know yet is drawn in the neutral tint instead of failing the whole response.
+    /// A colour this version does not know yet becomes the grey highlighter instead of failing the whole response.
     public init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
         self = GroupColor(rawValue: raw) ?? .slate
@@ -127,6 +127,11 @@ public struct GroupDetail: Codable, Equatable, Identifiable, Sendable {
 
     public func balanceCents(of memberId: String) -> Int {
         balances.first { $0.memberId == memberId }?.balanceCents ?? 0
+    }
+
+    /// A member's highlighter is their position in the group, modulo the palette size.
+    public func color(ofMember memberId: String) -> GroupColor {
+        GroupColor.palette(at: members.firstIndex { $0.id == memberId } ?? 0)
     }
 }
 

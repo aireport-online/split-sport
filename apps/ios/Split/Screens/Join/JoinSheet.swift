@@ -15,101 +15,83 @@ struct JoinSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            Desk {
                 if let preview = model.preview {
-                    groupSections(preview)
-                } else {
-                    codeSections
-                }
-
-                if let message = model.errorMessage {
-                    Section {
-                        ErrorRow(message: message)
+                    groupReceipt(preview)
+                    if model.needsIdentity {
+                        identityReceipt(preview)
                     }
-                    .listRowBackground(Theme.surface)
+                } else {
+                    codeReceipt
+                }
+                if let message = model.errorMessage {
+                    ErrorBanner(message: message)
+                }
+                if model.preview != nil {
+                    LinkButton(title: "Andere code invoeren") {
+                        model.chooseOtherCode()
+                    }
+                    .frame(maxWidth: .infinity)
                 }
             }
-            .themedList()
             .navigationTitle("Deelnemen")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuleer") { dismiss() }
+                    Button("Annuleren") { dismiss() }
+                        .font(.buttonLabel)
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                BottomBar {
+                    primaryButton
                 }
             }
             .task { await model.lookUpIfPrefilled() }
         }
     }
 
-    @ViewBuilder
-    private var codeSections: some View {
-        Section {
-            TextField("Uitnodigingscode", text: $model.codeText)
-                .textInputAutocapitalization(.characters)
-                .autocorrectionDisabled()
-                .font(.body.monospaced())
-        } footer: {
+    private var codeReceipt: some View {
+        Receipt {
+            PaperField(label: "Uitnodigingscode", text: $model.codeText, kind: .code)
             Text("De code van 8 tekens staat in de uitnodiging. Een uitnodigingslink plakken kan ook.")
+                .font(.tillSmall)
+                .foregroundStyle(Theme.mutedInk)
         }
-        .listRowBackground(Theme.surface)
+    }
 
-        Section {
-            Button {
-                Task { await model.lookUp() }
-            } label: {
-                HStack {
-                    Text("Zoek groep")
-                        .frame(maxWidth: .infinity)
-                    if model.isWorking {
-                        ProgressView()
-                    }
+    private func groupReceipt(_ preview: InvitePreview) -> some View {
+        Receipt {
+            GroupNameText(name: preview.name, color: preview.color)
+            Text(Wording.memberCount(preview.memberCount))
+                .font(.tillSmall)
+            if preview.alreadyMember {
+                Text("Je bent al lid van deze groep.")
+                    .foregroundStyle(Theme.mutedInk)
+            }
+        }
+    }
+
+    private func identityReceipt(_ preview: InvitePreview) -> some View {
+        Receipt {
+            ReceiptTitle(text: "Wie ben jij?")
+            ForEach(preview.unclaimedMembers) { member in
+                IdentityRow(title: member.name, isSelected: model.identity == .member(id: member.id)) {
+                    model.identity = .member(id: member.id)
                 }
             }
-            .disabled(!model.canLookUp)
+            IdentityRow(title: "Ik sta er niet tussen", isSelected: model.identity == .newMember) {
+                model.identity = .newMember
+            }
+            Text("Deze leden hebben nog geen account. Kies je naam om hun uitgaven over te nemen.")
+                .font(.tillSmall)
+                .foregroundStyle(Theme.mutedInk)
         }
-        .listRowBackground(Theme.surface)
     }
 
     @ViewBuilder
-    private func groupSections(_ preview: InvitePreview) -> some View {
-        Section {
-            HStack(spacing: 12) {
-                InitialsBadge(initials: Initials.of(preview.name), color: preview.color, outline: .tile, side: 44)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(preview.name)
-                        .font(.headline)
-                    Text(Wording.memberCount(preview.memberCount))
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.mutedText)
-                }
-            }
-            .accessibilityElement(children: .combine)
-            if preview.alreadyMember {
-                Text("Je bent al lid van deze groep.")
-                    .foregroundStyle(Theme.mutedText)
-            }
-        }
-        .listRowBackground(Theme.surface)
-
-        if model.needsIdentity {
-            Section {
-                ForEach(preview.unclaimedMembers) { member in
-                    IdentityRow(title: member.name, isSelected: model.identity == .member(id: member.id)) {
-                        model.identity = .member(id: member.id)
-                    }
-                }
-                IdentityRow(title: "Ik sta er niet tussen", isSelected: model.identity == .newMember) {
-                    model.identity = .newMember
-                }
-            } header: {
-                Text("Wie ben jij?")
-            } footer: {
-                Text("Deze leden hebben nog geen account. Kies je naam om hun uitgaven over te nemen.")
-            }
-            .listRowBackground(Theme.surface)
-        }
-
-        Section {
+    private var primaryButton: some View {
+        if let preview = model.preview {
             Button {
                 Task {
                     if let group = await model.join() {
@@ -117,25 +99,23 @@ struct JoinSheet: View {
                     }
                 }
             } label: {
-                HStack {
-                    Text(preview.alreadyMember ? "Open groep" : "Deelnemen")
-                        .frame(maxWidth: .infinity)
-                    if model.isWorking {
-                        ProgressView()
-                    }
-                }
+                BusyLabel(title: preview.alreadyMember ? "Open groep" : "Deelnemen", isBusy: model.isWorking)
             }
+            .buttonStyle(PaperButtonStyle(kind: .primary))
             .disabled(!model.canJoin)
-
-            Button("Andere code invoeren") {
-                model.chooseOtherCode()
+        } else {
+            Button {
+                Task { await model.lookUp() }
+            } label: {
+                BusyLabel(title: "Zoek groep", isBusy: model.isWorking)
             }
+            .buttonStyle(PaperButtonStyle(kind: .primary))
+            .disabled(!model.canLookUp)
         }
-        .listRowBackground(Theme.surface)
     }
 }
 
-/// One answer to "Wie ben jij?", with a checkmark when chosen.
+/// One answer to "Wie ben jij?": a checkbox and a name.
 @MainActor
 private struct IdentityRow: View {
     let title: String
@@ -144,17 +124,15 @@ private struct IdentityRow: View {
 
     var body: some View {
         Button(action: select) {
-            HStack {
+            HStack(spacing: 12) {
+                Checkbox(isChecked: isSelected)
                 Text(title)
-                    .foregroundStyle(Theme.text)
-                Spacer()
-                if isSelected {
-                    Image(systemName: "checkmark")
-                        .foregroundStyle(Theme.accent)
-                        .accessibilityHidden(true)
-                }
+                Spacer(minLength: 0)
             }
+            .frame(minHeight: 32)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

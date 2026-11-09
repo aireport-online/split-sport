@@ -4,11 +4,8 @@ import SwiftUI
 /// "Groep": the expenses and the balances of one group.
 @MainActor
 struct GroupView: View {
-    private enum Part: String, CaseIterable, Identifiable {
-        case expenses = "Uitgaven"
-        case balances = "Saldo"
-
-        var id: String { rawValue }
+    private enum Part: Hashable {
+        case expenses, balances
     }
 
     private enum Sheet: Identifiable {
@@ -48,6 +45,13 @@ struct GroupView: View {
             .navigationTitle(model.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // The group's name, underlined with its highlighter.
+                ToolbarItem(placement: .principal) {
+                    GroupNameText(name: model.name, color: model.color)
+                        .foregroundStyle(Theme.ink)
+                        .lineLimit(1)
+                        .accessibilityAddTraits(.isHeader)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         sheet = .settings
@@ -55,16 +59,6 @@ struct GroupView: View {
                         Image(systemName: "gearshape")
                     }
                     .accessibilityLabel("Groepsinstellingen")
-                    .disabled(model.detail == nil)
-                }
-                ToolbarItem(placement: .bottomBar) {
-                    Button {
-                        sheet = .newExpense
-                    } label: {
-                        Label("Uitgave toevoegen", systemImage: "plus.circle.fill")
-                            .labelStyle(.titleAndIcon)
-                            .font(.headline)
-                    }
                     .disabled(model.detail == nil)
                 }
             }
@@ -88,7 +82,7 @@ struct GroupView: View {
                     }
                     settlementToDelete = nil
                 }
-                Button("Annuleer", role: .cancel) {
+                Button("Annuleren", role: .cancel) {
                     settlementToDelete = nil
                 }
             }
@@ -97,28 +91,18 @@ struct GroupView: View {
     @ViewBuilder
     private var content: some View {
         if model.detail != nil {
-            List {
-                Section {
-                    Picker("Onderdeel", selection: $part) {
-                        ForEach(Part.allCases) { part in
-                            Text(part.rawValue).tag(part)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
-                }
-
+            Desk {
+                SegmentedControl(
+                    label: "Onderdeel",
+                    options: [(value: Part.expenses, title: "Uitgaven"), (value: Part.balances, title: "Saldo")],
+                    selection: $part
+                )
                 if let message = model.errorMessage {
-                    Section {
-                        ErrorRow(message: message)
-                    }
-                    .listRowBackground(Theme.surface)
+                    ErrorBanner(message: message)
                 }
-
                 switch part {
                 case .expenses:
-                    ExpenseListSection(rows: model.expenseRows) { row in
+                    ExpensesReceipt(months: model.expenseMonths) { row in
                         // A payment cannot be edited, only removed.
                         if row.isSettlement {
                             settlementToDelete = row
@@ -127,15 +111,21 @@ struct GroupView: View {
                         }
                     }
                 case .balances:
-                    BalanceSections(
-                        balances: model.balanceRows,
-                        transfers: model.transferRows,
-                        onSettle: { transfer in sheet = .settlement(transfer) }
-                    )
+                    BalanceReceipt(rows: model.balanceRows)
+                    SettleReceipt(rows: model.transferRows) { transfer in
+                        sheet = .settlement(transfer)
+                    }
                 }
             }
-            .themedList()
             .refreshable { await model.load() }
+            .safeAreaInset(edge: .bottom) {
+                BottomBar {
+                    Button("Uitgave toevoegen") {
+                        sheet = .newExpense
+                    }
+                    .buttonStyle(PaperButtonStyle(kind: .primary))
+                }
+            }
         } else if let message = model.errorMessage {
             LoadFailedView(message: message) { await model.load() }
         } else {

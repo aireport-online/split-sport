@@ -5,11 +5,10 @@ import Observation
 @MainActor
 @Observable
 public final class AuthViewModel {
-    public enum Mode: String, CaseIterable, Identifiable, Sendable {
+    public enum Mode: Sendable {
         case login, register
 
-        public var id: String { rawValue }
-
+        /// The name of the mode, which is also the label of its button.
         public var title: String {
             switch self {
             case .login: return "Inloggen"

@@ -2,53 +2,63 @@ import SplitKit
 import SwiftUI
 import UIKit
 
-/// The colour roles of `docs/design.md` as SwiftUI colours that follow light and
-/// dark mode. The hex values themselves live in `SplitKit.Palette`.
+/// The "Kassabon" house style (`docs/design.md`): the colour roles as SwiftUI
+/// colours that follow light and dark mode, and the measures of the paper.
+/// The hex values themselves live in `SplitKit.Palette`.
 enum Theme {
-    static let ground = Color(Palette.ground)
-    static let surface = Color(Palette.surface)
-    static let border = Color(Palette.border)
-    static let text = Color(Palette.text)
-    static let mutedText = Color(Palette.mutedText)
-    static let accent = Color(Palette.accent)
-    static let onAccent = Color(Palette.onAccent)
-    static let positive = Color(Palette.positive)
-    static let negative = Color(Palette.negative)
+    static let desk = Color(Palette.desk)
+    static let paper = Color(Palette.paper)
+    static let ink = Color(Palette.ink)
+    static let onInk = Color(Palette.onInk)
+    static let mutedInk = Color(Palette.mutedInk)
+    static let perforation = Color(Palette.perforation)
+    static let stamp = Color(Palette.stamp)
+    /// Text that lies on a highlighter: the same in both themes.
+    static let highlighterInk = Color(Palette.highlighterInk)
 
-    static let controlRadius = CGFloat(Palette.controlRadius)
+    /// Corner radius of buttons and segmented controls.
+    static let radius: CGFloat = 4
+    /// Width of ink outlines.
+    static let outline: CGFloat = 1.5
+    /// One tooth of the zigzag tear at the bottom of a receipt.
+    static let toothWidth: CGFloat = 12
+    static let toothHeight: CGFloat = 6
+    /// Space between the edge of a receipt and what is printed on it.
+    static let receiptPadding: CGFloat = 18
+    /// Space between the edge of the screen and a receipt.
+    static let deskPadding: CGFloat = 16
+    static let buttonHeight: CGFloat = 48
+    /// The dashed line of a perforation and of a field underline.
+    static let perforationStroke = StrokeStyle(lineWidth: 1.5, dash: [6, 4])
 }
 
 extension Color {
     /// A colour that switches between its light and dark value with the interface style.
     init(_ themed: ThemedColor) {
-        self.init(uiColor: UIColor(dynamicProvider: { traits in
-            UIColor(hex: traits.userInterfaceStyle == .dark ? themed.dark : themed.light)
-        }))
+        self.init(uiColor: UIColor(themed))
+    }
+
+    /// A colour that is the same in both themes.
+    init(_ color: HexColor) {
+        self.init(red: color.red, green: color.green, blue: color.blue)
     }
 }
 
 extension UIColor {
+    convenience init(_ themed: ThemedColor) {
+        self.init(dynamicProvider: { traits in
+            UIColor(hex: traits.userInterfaceStyle == .dark ? themed.dark : themed.light)
+        })
+    }
+
     convenience init(hex color: HexColor) {
         self.init(red: CGFloat(color.red), green: CGFloat(color.green), blue: CGFloat(color.blue), alpha: 1)
     }
 }
 
-extension Wording.BalanceSign {
-    /// A positive balance is green, a negative one the normal text colour
-    /// (owing money is not an error), zero is grey.
-    var color: Color {
-        switch self {
-        case .positive: return Theme.positive
-        case .negative: return Theme.text
-        case .zero: return Theme.mutedText
-        }
-    }
-}
-
-extension View {
-    /// A list or form on the app's ground colour.
-    func themedList() -> some View {
-        scrollContentBackground(.hidden)
-            .background(Theme.ground)
+extension GroupColor {
+    /// The highlighter as a SwiftUI colour.
+    var highlighterColor: Color {
+        Color(highlighter)
     }
 }

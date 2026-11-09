@@ -3,13 +3,15 @@ import Foundation
 /// Parsing and formatting of amounts. Money is integer cents everywhere.
 ///
 /// Formatting is written out by hand instead of using `NumberFormatter`, so the
-/// result is the same Dutch notation on every device locale and on Linux.
+/// result is the same Dutch notation on every device locale and on Linux. The
+/// spaces inside an amount are no-break spaces, so "€ 12,50" and "+ 24,95" never
+/// wrap in the middle; in the monospaced type they are as wide as a normal space.
 public enum Money {
     /// The largest integer JavaScript represents exactly; `parse` rejects more, like the reference.
     private static let maxSafeInteger = 9_007_199_254_740_991
 
-    /// A no-break space, so "€ 12,50" never wraps between the sign and the number.
     private static let space = "\u{00A0}"
+    private static let minus = "\u{2212}"
 
     /// Parses what a person typed as an amount ("12,50", "12.5", "1.234,56", "€ 12")
     /// into integer cents. Nil when it is not a valid non-negative amount.
@@ -45,21 +47,33 @@ public enum Money {
         return scaled + fractionValue
     }
 
-    /// "€ 1.234,56". A negative amount reads "€ -8,00", like `Intl.NumberFormat("nl-NL")`.
-    public static func format(_ cents: Int) -> String {
-        "€" + space + (cents < 0 ? "-" : "") + digits(cents.magnitude, grouped: true)
+    /// An amount as a till prints it on a receipt line, without sign or currency: "1.234,56".
+    public static func plain(_ cents: Int) -> String {
+        digits(cents.magnitude, grouped: true)
     }
 
-    /// A balance with its sign in front: "+ € 12,50", "− € 8,00", and "€ 0,00" for zero.
-    public static func formatSigned(_ cents: Int) -> String {
-        let amount = "€" + space + digits(cents.magnitude, grouped: true)
-        if cents == 0 { return amount }
-        return (cents > 0 ? "+" : "−") + space + amount
+    /// A balance on a receipt line: "+ 24,95", "− 21,60" or "0,00".
+    public static func signedPlain(_ cents: Int) -> String {
+        sign(cents) + plain(cents)
+    }
+
+    /// An amount in a total, a headline or a sentence: "€ 1.234,56" (without sign).
+    public static func euro(_ cents: Int) -> String {
+        "€" + space + plain(cents)
+    }
+
+    /// A balance as a headline figure: "+ € 109,55", "− € 8,00" or "€ 0,00".
+    public static func signedEuro(_ cents: Int) -> String {
+        sign(cents) + euro(cents)
     }
 
     /// "1234,56": the text to put in an amount field so it parses back to the same value.
     public static func editingText(_ cents: Int) -> String {
-        (cents < 0 ? "-" : "") + digits(cents.magnitude, grouped: false)
+        digits(cents.magnitude, grouped: false)
+    }
+
+    private static func sign(_ cents: Int) -> String {
+        cents == 0 ? "" : (cents > 0 ? "+" : minus) + space
     }
 
     private static func digits(_ cents: UInt, grouped: Bool) -> String {
