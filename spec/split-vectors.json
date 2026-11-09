@@ -1,0 +1,269 @@
+{
+  "description": "Shared test vectors for computeShares(amountCents, split). Every client (TypeScript, Kotlin, Swift) must produce exactly `expected`, in this order, or fail with `error`.",
+  "cases": [
+    {
+      "name": "equal: divides evenly",
+      "amountCents": 3000,
+      "split": { "mode": "equal", "memberIds": ["a", "b", "c"] },
+      "expected": [
+        { "memberId": "a", "amountCents": 1000 },
+        { "memberId": "b", "amountCents": 1000 },
+        { "memberId": "c", "amountCents": 1000 }
+      ]
+    },
+    {
+      "name": "equal: leftover cent goes to the first member",
+      "amountCents": 1000,
+      "split": { "mode": "equal", "memberIds": ["a", "b", "c"] },
+      "expected": [
+        { "memberId": "a", "amountCents": 334 },
+        { "memberId": "b", "amountCents": 333 },
+        { "memberId": "c", "amountCents": 333 }
+      ]
+    },
+    {
+      "name": "equal: two leftover cents go to the first two members",
+      "amountCents": 2000,
+      "split": { "mode": "equal", "memberIds": ["c", "a", "b"] },
+      "expected": [
+        { "memberId": "c", "amountCents": 667 },
+        { "memberId": "a", "amountCents": 667 },
+        { "memberId": "b", "amountCents": 666 }
+      ]
+    },
+    {
+      "name": "equal: one cent over three people",
+      "amountCents": 1,
+      "split": { "mode": "equal", "memberIds": ["a", "b", "c"] },
+      "expected": [
+        { "memberId": "a", "amountCents": 1 },
+        { "memberId": "b", "amountCents": 0 },
+        { "memberId": "c", "amountCents": 0 }
+      ]
+    },
+    {
+      "name": "equal: single member pays everything",
+      "amountCents": 1234,
+      "split": { "mode": "equal", "memberIds": ["a"] },
+      "expected": [{ "memberId": "a", "amountCents": 1234 }]
+    },
+    {
+      "name": "exact: amounts are kept, zero amounts are dropped",
+      "amountCents": 5000,
+      "split": {
+        "mode": "exact",
+        "amounts": [
+          { "memberId": "a", "amountCents": 1250 },
+          { "memberId": "b", "amountCents": 0 },
+          { "memberId": "c", "amountCents": 3750 }
+        ]
+      },
+      "expected": [
+        { "memberId": "a", "amountCents": 1250 },
+        { "memberId": "c", "amountCents": 3750 }
+      ]
+    },
+    {
+      "name": "shares: 2 to 1",
+      "amountCents": 9000,
+      "split": {
+        "mode": "shares",
+        "weights": [
+          { "memberId": "a", "weight": 2 },
+          { "memberId": "b", "weight": 1 }
+        ]
+      },
+      "expected": [
+        { "memberId": "a", "amountCents": 6000 },
+        { "memberId": "b", "amountCents": 3000 }
+      ]
+    },
+    {
+      "name": "shares: largest remainder gets the leftover cent",
+      "amountCents": 1000,
+      "split": {
+        "mode": "shares",
+        "weights": [
+          { "memberId": "a", "weight": 1 },
+          { "memberId": "b", "weight": 2 },
+          { "memberId": "c", "weight": 0 },
+          { "memberId": "d", "weight": 3 }
+        ]
+      },
+      "expected": [
+        { "memberId": "a", "amountCents": 167 },
+        { "memberId": "b", "amountCents": 333 },
+        { "memberId": "d", "amountCents": 500 }
+      ]
+    },
+    {
+      "name": "shares: tie on remainder goes to the earlier member",
+      "amountCents": 101,
+      "split": {
+        "mode": "shares",
+        "weights": [
+          { "memberId": "a", "weight": 1 },
+          { "memberId": "b", "weight": 1 },
+          { "memberId": "c", "weight": 2 }
+        ]
+      },
+      "expected": [
+        { "memberId": "a", "amountCents": 25 },
+        { "memberId": "b", "amountCents": 25 },
+        { "memberId": "c", "amountCents": 51 }
+      ]
+    },
+    {
+      "name": "shares: large amount does not overflow",
+      "amountCents": 99999999,
+      "split": {
+        "mode": "shares",
+        "weights": [
+          { "memberId": "a", "weight": 1000000 },
+          { "memberId": "b", "weight": 999999 },
+          { "memberId": "c", "weight": 1 }
+        ]
+      },
+      "expected": [
+        { "memberId": "a", "amountCents": 49999999 },
+        { "memberId": "b", "amountCents": 49999950 },
+        { "memberId": "c", "amountCents": 50 }
+      ]
+    },
+    {
+      "name": "items: everyone pays what they ordered",
+      "amountCents": 2350,
+      "split": {
+        "mode": "items",
+        "items": [
+          { "name": "Pizza Margherita", "amountCents": 1100, "memberIds": ["a"] },
+          { "name": "Pasta", "amountCents": 1250, "memberIds": ["b"] }
+        ]
+      },
+      "expected": [
+        { "memberId": "a", "amountCents": 1100 },
+        { "memberId": "b", "amountCents": 1250 }
+      ]
+    },
+    {
+      "name": "items: shared item is divided, odd cent to the first assignee",
+      "amountCents": 1501,
+      "split": {
+        "mode": "items",
+        "items": [
+          { "name": "Fles wijn", "amountCents": 1001, "memberIds": ["b", "a"] },
+          { "name": "Koffie", "amountCents": 500, "memberIds": ["c"] }
+        ]
+      },
+      "expected": [
+        { "memberId": "b", "amountCents": 501 },
+        { "memberId": "a", "amountCents": 500 },
+        { "memberId": "c", "amountCents": 500 }
+      ]
+    },
+    {
+      "name": "items: tip on top is spread in proportion to what everyone ordered",
+      "amountCents": 4400,
+      "split": {
+        "mode": "items",
+        "items": [
+          { "name": "Steak", "amountCents": 3000, "memberIds": ["a"] },
+          { "name": "Salade", "amountCents": 1000, "memberIds": ["b"] }
+        ]
+      },
+      "expected": [
+        { "memberId": "a", "amountCents": 3300 },
+        { "memberId": "b", "amountCents": 1100 }
+      ]
+    },
+    {
+      "name": "items: discount is spread in proportion, rounding stays exact",
+      "amountCents": 2500,
+      "split": {
+        "mode": "items",
+        "items": [
+          { "name": "Burger", "amountCents": 1450, "memberIds": ["a"] },
+          { "name": "Friet", "amountCents": 450, "memberIds": ["a", "b", "c"] },
+          { "name": "Bier", "amountCents": 1100, "memberIds": ["b", "c"] }
+        ]
+      },
+      "expected": [
+        { "memberId": "a", "amountCents": 1333 },
+        { "memberId": "b", "amountCents": 583 },
+        { "memberId": "c", "amountCents": 584 }
+      ]
+    },
+    {
+      "name": "error: amount must be positive",
+      "amountCents": 0,
+      "split": { "mode": "equal", "memberIds": ["a"] },
+      "error": "invalid_amount"
+    },
+    {
+      "name": "error: amount above the maximum",
+      "amountCents": 100000000,
+      "split": { "mode": "equal", "memberIds": ["a"] },
+      "error": "invalid_amount"
+    },
+    {
+      "name": "error: equal split needs participants",
+      "amountCents": 1000,
+      "split": { "mode": "equal", "memberIds": [] },
+      "error": "no_participants"
+    },
+    {
+      "name": "error: member listed twice",
+      "amountCents": 1000,
+      "split": { "mode": "equal", "memberIds": ["a", "a"] },
+      "error": "duplicate_member"
+    },
+    {
+      "name": "error: exact amounts must add up",
+      "amountCents": 1000,
+      "split": {
+        "mode": "exact",
+        "amounts": [
+          { "memberId": "a", "amountCents": 400 },
+          { "memberId": "b", "amountCents": 500 }
+        ]
+      },
+      "error": "exact_sum_mismatch"
+    },
+    {
+      "name": "error: all weights zero",
+      "amountCents": 1000,
+      "split": {
+        "mode": "shares",
+        "weights": [
+          { "memberId": "a", "weight": 0 },
+          { "memberId": "b", "weight": 0 }
+        ]
+      },
+      "error": "no_participants"
+    },
+    {
+      "name": "error: negative weight",
+      "amountCents": 1000,
+      "split": { "mode": "shares", "weights": [{ "memberId": "a", "weight": -1 }] },
+      "error": "invalid_weight"
+    },
+    {
+      "name": "error: item without anyone assigned",
+      "amountCents": 1000,
+      "split": {
+        "mode": "items",
+        "items": [{ "name": "Cola", "amountCents": 1000, "memberIds": [] }]
+      },
+      "error": "item_unassigned"
+    },
+    {
+      "name": "error: item with a zero price",
+      "amountCents": 1000,
+      "split": {
+        "mode": "items",
+        "items": [{ "name": "Kraanwater", "amountCents": 0, "memberIds": ["a"] }]
+      },
+      "error": "invalid_item"
+    }
+  ]
+}

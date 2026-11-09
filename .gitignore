@@ -1,0 +1,30 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
+data/
+.DS_Store
+.taste-skill/
+coverage/
+
+# Android
+apps/android/.gradle/
+apps/android/build/
+apps/android/**/build/
+apps/android/local.properties
+apps/android/.idea/
+apps/android/.kotlin/
+*.iml
+
+# iOS
+apps/ios/build/
+apps/ios/.build/
+apps/ios/**/.build/
+apps/ios/**/xcuserdata/
+apps/ios/DerivedData/
+*.xcuserstate
