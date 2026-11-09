@@ -1,0 +1,44 @@
+name: iOS
+
+# macOS runners are billed at a higher rate on private repositories, so this
+# workflow only runs when the iOS app or the shared test vectors change.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/ios/**"
+      - "spec/**"
+      - ".github/workflows/ios.yml"
+  pull_request:
+    paths:
+      - "apps/ios/**"
+      - "spec/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    name: SplitKit tests and app build
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test SplitKit
+        working-directory: apps/ios/SplitKit
+        run: swift test
+      - name: Generate the Xcode project
+        working-directory: apps/ios
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Build the app for the simulator
+        working-directory: apps/ios
+        run: |
+          xcodebuild build \
+            -project Split.xcodeproj \
+            -scheme Split \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
