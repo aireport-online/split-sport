@@ -1,21 +1,14 @@
 package online.aireport.split.ui.groups
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -29,34 +22,37 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import online.aireport.split.R
+import online.aireport.split.core.formatSignedCents
 import online.aireport.split.data.model.GroupColor
 import online.aireport.split.data.model.GroupSummary
 import online.aireport.split.ui.common.collectAsUiState
 import online.aireport.split.ui.common.splitViewModel
+import online.aireport.split.ui.components.BottomActionBar
 import online.aireport.split.ui.components.EmptyState
 import online.aireport.split.ui.components.ErrorState
-import online.aireport.split.ui.components.GroupTile
+import online.aireport.split.ui.components.GroupName
+import online.aireport.split.ui.components.HomeTopBar
+import online.aireport.split.ui.components.IconActionButton
 import online.aireport.split.ui.components.LoadingState
 import online.aireport.split.ui.components.MessageEffect
 import online.aireport.split.ui.components.PrimaryButton
+import online.aireport.split.ui.components.Receipt
+import online.aireport.split.ui.components.ReceiptLine
+import online.aireport.split.ui.components.ReceiptPadding
 import online.aireport.split.ui.components.SecondaryButton
-import online.aireport.split.ui.components.SplitCard
-import online.aireport.split.ui.components.SplitTopBar
 import online.aireport.split.ui.components.balanceColor
 import online.aireport.split.ui.components.ownBalanceSentence
-import online.aireport.split.ui.components.signedBalance
+import online.aireport.split.ui.theme.FigureTextStyle
+import online.aireport.split.ui.theme.SplitTheme
 
 @Composable
 fun GroupsRoute(onOpenGroup: (String) -> Unit, onJoinWithCode: () -> Unit, onOpenProfile: () -> Unit) {
@@ -100,14 +96,26 @@ fun GroupsScreen(
 
     Scaffold(
         topBar = {
-            SplitTopBar(
+            HomeTopBar(
                 title = stringResource(R.string.groups_title),
                 actions = {
-                    IconButton(onClick = onOpenProfile) {
-                        Icon(painterResource(R.drawable.ic_person), stringResource(R.string.profile_title))
-                    }
+                    IconActionButton(
+                        icon = painterResource(R.drawable.ic_person),
+                        contentDescription = stringResource(R.string.profile_title),
+                        onClick = onOpenProfile,
+                    )
                 },
             )
+        },
+        bottomBar = {
+            BottomActionBar {
+                PrimaryButton(
+                    text = stringResource(R.string.groups_new),
+                    onClick = { newGroupDialogOpen = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    loading = state.isCreating,
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
@@ -121,12 +129,7 @@ fun GroupsScreen(
                     .fillMaxSize()
                     .padding(padding),
             ) {
-                GroupList(
-                    state = state,
-                    onOpenGroup = onOpenGroup,
-                    onNewGroup = { newGroupDialogOpen = true },
-                    onJoinWithCode = onJoinWithCode,
-                )
+                GroupList(state, onOpenGroup, onJoinWithCode)
             }
         }
     }
@@ -142,98 +145,80 @@ fun GroupsScreen(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun GroupList(
-    state: GroupsUiState,
-    onOpenGroup: (String) -> Unit,
-    onNewGroup: () -> Unit,
-    onJoinWithCode: () -> Unit,
-) {
+private fun GroupList(state: GroupsUiState, onOpenGroup: (String) -> Unit, onJoinWithCode: () -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item(key = "balance") { TotalBalanceCard(state.totalBalanceCents) }
-        item(key = "actions") {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                PrimaryButton(
-                    text = stringResource(R.string.groups_new),
-                    onClick = onNewGroup,
-                    loading = state.isCreating,
-                )
-                SecondaryButton(stringResource(R.string.groups_join), onJoinWithCode)
-            }
-        }
+        item(key = "balance") { TotalBalanceReceipt(state.totalBalanceCents) }
         if (state.groups.isEmpty()) {
             item(key = "empty") { EmptyState(stringResource(R.string.groups_empty)) }
         } else {
-            item(key = "groups") {
-                SplitCard {
-                    state.groups.forEachIndexed { index, group ->
-                        if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        GroupRow(group, onClick = { onOpenGroup(group.id) })
-                    }
-                }
+            items(state.groups, key = { it.id }) { group ->
+                GroupReceipt(group, onClick = { onOpenGroup(group.id) })
             }
         }
+        item(key = "join") {
+            SecondaryButton(stringResource(R.string.groups_join), onJoinWithCode, Modifier.fillMaxWidth())
+        }
     }
 }
 
+/** The "Jouw saldo" receipt: the balance over all groups as a large figure, and in words. */
 @Composable
-private fun TotalBalanceCard(totalBalanceCents: Long) {
-    SplitCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+private fun TotalBalanceReceipt(totalBalanceCents: Long) {
+    val sentence = ownBalanceSentence(totalBalanceCents)
+    Receipt(Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .padding(ReceiptPadding)
+                // Read as one thing; the sentence says what the figure shows.
+                .semantics(mergeDescendants = true) {},
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(stringResource(R.string.groups_total_balance), style = MaterialTheme.typography.bodyLarge)
             Text(
-                text = stringResource(R.string.groups_total_balance),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = ownBalanceSentence(totalBalanceCents),
-                modifier = Modifier.semantics { heading() },
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
+                text = formatSignedCents(totalBalanceCents),
+                modifier = Modifier.clearAndSetSemantics {},
+                style = FigureTextStyle,
                 color = balanceColor(totalBalanceCents),
             )
+            Text(sentence, style = MaterialTheme.typography.bodyMedium, color = SplitTheme.colors.mutedInk)
         }
     }
 }
 
+/** One small receipt per group: the name, the number of members and your own balance. */
 @Composable
-private fun GroupRow(group: GroupSummary, onClick: () -> Unit) {
+private fun GroupReceipt(group: GroupSummary, onClick: () -> Unit) {
     val balanceDescription = ownBalanceSentence(group.myBalanceCents)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        GroupTile(group.name, group.color)
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = group.name,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = pluralStringResource(R.plurals.member_count, group.memberCount, group.memberCount),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Receipt(Modifier.fillMaxWidth(), onClick = onClick) {
+        Column(
+            modifier = Modifier.padding(start = ReceiptPadding, end = ReceiptPadding, top = 16.dp, bottom = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            GroupName(group.name, group.color)
+            ReceiptLine(
+                name = {
+                    Text(
+                        text = pluralStringResource(R.plurals.member_count, group.memberCount, group.memberCount),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = SplitTheme.colors.mutedInk,
+                        maxLines = 1,
+                    )
+                },
+                amount = {
+                    Text(
+                        text = formatSignedCents(group.myBalanceCents),
+                        modifier = Modifier.semantics { contentDescription = balanceDescription },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = balanceColor(group.myBalanceCents),
+                        maxLines = 1,
+                    )
+                },
             )
         }
-        Text(
-            text = signedBalance(group.myBalanceCents),
-            modifier = Modifier.semantics { contentDescription = balanceDescription },
-            style = MaterialTheme.typography.titleMedium,
-            color = balanceColor(group.myBalanceCents),
-        )
     }
 }

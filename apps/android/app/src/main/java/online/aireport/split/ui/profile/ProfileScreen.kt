@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -29,14 +30,19 @@ import online.aireport.split.ui.common.collectAsUiState
 import online.aireport.split.ui.common.splitViewModel
 import online.aireport.split.ui.components.ConfirmDialog
 import online.aireport.split.ui.components.ErrorState
+import online.aireport.split.ui.components.LinkButton
 import online.aireport.split.ui.components.LoadingState
 import online.aireport.split.ui.components.MAX_NAME_LENGTH
 import online.aireport.split.ui.components.MessageEffect
+import online.aireport.split.ui.components.Perforation
 import online.aireport.split.ui.components.PrimaryButton
+import online.aireport.split.ui.components.Receipt
+import online.aireport.split.ui.components.ReceiptLine
+import online.aireport.split.ui.components.ReceiptPadding
 import online.aireport.split.ui.components.SecondaryButton
-import online.aireport.split.ui.components.SplitCard
 import online.aireport.split.ui.components.SplitTextField
 import online.aireport.split.ui.components.SplitTopBar
+import online.aireport.split.ui.theme.SplitTheme
 
 private const val MAX_IBAN_LENGTH = 42
 
@@ -74,6 +80,7 @@ fun ProfileScreen(
     MessageEffect(state.message, snackbarHostState, onMessageShown)
 
     Scaffold(
+        modifier = Modifier.imePadding(),
         topBar = { SplitTopBar(title = stringResource(R.string.profile_title), onBack = onBack) },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
@@ -83,14 +90,12 @@ fun ProfileScreen(
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
-                    .imePadding()
                     .verticalScroll(rememberScrollState())
-                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
             ) {
                 val enabled = !state.isBusy
-                SplitCard {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Receipt(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(ReceiptPadding), verticalArrangement = Arrangement.spacedBy(18.dp)) {
                         SplitTextField(
                             value = state.name,
                             onValueChange = { onNameChange(it.take(MAX_NAME_LENGTH)) },
@@ -102,13 +107,11 @@ fun ProfileScreen(
                                 imeAction = ImeAction.Next,
                             ),
                         )
-                        SplitTextField(
-                            value = user.email,
-                            onValueChange = {},
-                            label = stringResource(R.string.field_email),
-                            modifier = Modifier.fillMaxWidth(),
-                            readOnly = true,
-                            supportingText = stringResource(R.string.profile_email_hint),
+                        // The e-mail address cannot be changed, so it is printed as a receipt line.
+                        ReceiptLine(
+                            name = stringResource(R.string.field_email),
+                            amount = user.email,
+                            color = SplitTheme.colors.mutedInk,
                         )
                         SplitTextField(
                             value = state.iban,
@@ -124,30 +127,39 @@ fun ProfileScreen(
                                 imeAction = ImeAction.Done,
                             ),
                         )
-                        PrimaryButton(
-                            text = stringResource(R.string.action_save),
-                            onClick = onSave,
+                        if (state.hasChanges) {
+                            PrimaryButton(
+                                text = stringResource(R.string.action_save),
+                                onClick = onSave,
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = state.canSave,
+                                loading = state.isSaving,
+                            )
+                        }
+                    }
+                    Perforation(Modifier.padding(horizontal = ReceiptPadding))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = ReceiptPadding, end = ReceiptPadding, top = ReceiptPadding, bottom = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        SecondaryButton(
+                            text = stringResource(R.string.profile_logout),
+                            onClick = onLogout,
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = state.canSave,
-                            loading = state.isSaving,
+                            enabled = enabled,
+                            loading = state.isLoggingOut,
+                        )
+                        LinkButton(
+                            text = stringResource(R.string.profile_delete),
+                            onClick = { confirmDelete = true },
+                            enabled = enabled,
+                            destructive = true,
                         )
                     }
                 }
-                SecondaryButton(
-                    text = stringResource(R.string.profile_logout),
-                    onClick = onLogout,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = enabled,
-                    loading = state.isLoggingOut,
-                )
-                SecondaryButton(
-                    text = stringResource(R.string.profile_delete),
-                    onClick = { confirmDelete = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = enabled,
-                    loading = state.isDeleting,
-                    destructive = true,
-                )
             }
             state.loadError != null -> ErrorState(state.loadError.resolve(), onRetry, Modifier.padding(padding))
             else -> LoadingState(Modifier.padding(padding))

@@ -22,6 +22,7 @@
     <!-- Field labels -->
     <string name="field_name">Naam</string>
     <string name="field_email">E-mail</string>
+    <string name="field_email_address">E-mailadres</string>
     <string name="field_password">Wachtwoord</string>
     <string name="field_server">Server</string>
     <string name="field_amount">Bedrag</string>
@@ -32,7 +33,7 @@
     <string name="field_iban">IBAN</string>
 
     <!-- People -->
-    <string name="member_you">%1$s (jij)</string>
+    <string name="member_you_suffix">(jij)</string>
     <string name="member_unknown">Onbekend</string>
     <string name="member_no_account">geen account</string>
     <plurals name="member_count">
@@ -47,14 +48,13 @@
     <string name="balance_member_positive">krijgt %1$s</string>
     <string name="balance_member_negative">betaalt %1$s</string>
     <string name="balance_member_zero">quitte</string>
-    <string name="balance_signed_positive">+ %1$s</string>
-    <string name="balance_signed_negative">− %1$s</string>
 
     <!-- Log in / register -->
-    <string name="auth_tagline">Samen uitgeven, eerlijk verdelen.</string>
     <string name="auth_login">Inloggen</string>
     <string name="auth_register">Account maken</string>
     <string name="auth_password_hint">Minstens 8 tekens.</string>
+    <string name="auth_no_account">Nog geen account?</string>
+    <string name="auth_have_account">Al een account?</string>
     <string name="auth_advanced">Geavanceerd</string>
     <string name="auth_server_placeholder" translatable="false">https://split.example.org</string>
     <string name="auth_server_hint">Het adres van de Split-server waarmee je wilt verbinden.</string>
@@ -81,7 +81,10 @@
     <string name="group_tab_expenses">Uitgaven</string>
     <string name="group_tab_balances">Saldo</string>
     <string name="expenses_empty">Nog geen uitgaven. Voeg de eerste toe.</string>
-    <string name="expense_paid_by">%1$s betaalde · %2$s</string>
+    <!-- Follows the highlighted name of who paid: "Anna betaalde · 2 nov". -->
+    <string name="expense_paid_on">betaalde · %1$s</string>
+    <string name="settlement_paid_on">betaling · %1$s</string>
+    <string name="stamp_paid">Betaald</string>
     <string name="expense_effect_positive">je krijgt %1$s</string>
     <string name="expense_effect_negative">je betaalt %1$s</string>
     <string name="settlement_title">%1$s betaalde %2$s</string>
@@ -106,13 +109,16 @@
     <string name="expense_edit">Uitgave bewerken</string>
     <string name="expense_delete_title">Uitgave verwijderen?</string>
     <string name="expense_delete_text">De uitgave verdwijnt voor iedereen in de groep en de saldo\'s worden opnieuw berekend.</string>
-    <string name="split_heading">Verdeling</string>
     <string name="split_mode_equal">Gelijk</string>
     <string name="split_mode_exact">Bedragen</string>
     <string name="split_mode_shares">Aandelen</string>
     <string name="split_mode_items">Per regel</string>
     <string name="split_per_person">Per persoon</string>
+    <string name="expense_total">TOTAAL</string>
     <string name="amount_none">–</string>
+    <string name="amount_placeholder" translatable="false">0,00</string>
+    <string name="split_exact_amount_for">Bedrag voor %1$s</string>
+    <string name="split_items_amount_of">Bedrag van regel %1$s</string>
     <string name="split_exact_remaining">Nog %1$s te verdelen</string>
     <string name="split_exact_over">%1$s te veel verdeeld</string>
     <string name="split_shares_less">Minder aandelen voor %1$s</string>
@@ -166,11 +172,11 @@
     <string name="join_open_group">Groep openen</string>
     <string name="join_already_member">Je bent al lid van deze groep.</string>
     <string name="join_who_are_you">Wie ben jij?</string>
+    <string name="join_who_are_you_hint">Sta je al in de groep? Kies je naam en je neemt dat saldo over.</string>
     <string name="join_not_listed">Ik sta er niet tussen</string>
 
     <!-- Profile -->
     <string name="profile_title">Profiel</string>
-    <string name="profile_email_hint">Je e-mailadres kun je niet wijzigen.</string>
     <string name="profile_iban_hint">Zodat anderen weten waar ze kunnen betalen.</string>
     <string name="profile_saved">Opgeslagen</string>
     <string name="profile_logout">Uitloggen</string>

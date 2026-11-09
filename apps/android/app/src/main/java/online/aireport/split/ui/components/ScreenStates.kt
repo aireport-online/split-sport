@@ -15,18 +15,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import online.aireport.split.R
+import online.aireport.split.ui.theme.SplitTheme
 
 /** A request is under way and there is nothing to show yet. */
 @Composable
 fun LoadingState(modifier: Modifier = Modifier) {
     val description = stringResource(R.string.loading)
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(Modifier.semantics { contentDescription = description })
+        CircularProgressIndicator(
+            modifier = Modifier.semantics { contentDescription = description },
+            color = SplitTheme.colors.ink,
+            trackColor = SplitTheme.colors.perforation,
+            strokeWidth = 2.dp,
+        )
     }
 }
 
@@ -34,7 +42,7 @@ fun LoadingState(modifier: Modifier = Modifier) {
 @Composable
 fun ErrorState(message: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     Column(
-        // Scrollable so pull-to-refresh works and large text is never cut off.
+        // Scrollable so large text is never cut off.
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
@@ -42,14 +50,21 @@ fun ErrorState(message: String, onRetry: () -> Unit, modifier: Modifier = Modifi
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.error,
-            textAlign = TextAlign.Center,
-        )
+        ErrorText(message, textAlign = TextAlign.Center)
         SecondaryButton(stringResource(R.string.retry), onRetry)
     }
+}
+
+/** A failure next to the form it belongs to, in stamp red; announced when it appears. */
+@Composable
+fun ErrorText(message: String, modifier: Modifier = Modifier, textAlign: TextAlign = TextAlign.Start) {
+    Text(
+        text = message,
+        modifier = modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        style = MaterialTheme.typography.bodyMedium,
+        color = SplitTheme.colors.stamp,
+        textAlign = textAlign,
+    )
 }
 
 /** A list without anything in it: says what to do next. */
@@ -59,9 +74,9 @@ fun EmptyState(text: String, modifier: Modifier = Modifier) {
         text = text,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 32.dp, vertical = 40.dp),
+            .padding(horizontal = 24.dp, vertical = 28.dp),
         style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = SplitTheme.colors.mutedInk,
         textAlign = TextAlign.Center,
     )
 }

@@ -1,30 +1,71 @@
 package online.aireport.split.ui.theme
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import online.aireport.split.data.model.GroupColor
 
-/** The colour tokens of `docs/design.md`, light and dark. */
-internal object Brand {
-    val groundLight = Color(0xFFF3F5F7)
-    val groundDark = Color(0xFF101214)
-    val surfaceLight = Color(0xFFFFFFFF)
-    val surfaceDark = Color(0xFF1A1D20)
-    val borderLight = Color(0xFFE6E6E6)
-    val borderDark = Color(0xFF2C3034)
-    val textLight = Color(0xFF1B1D1F)
-    val textDark = Color(0xFFECEEF0)
-    val mutedLight = Color(0xFF5C6064)
-    val mutedDark = Color(0xFFA0A5AB)
-    val accentLight = Color(0xFF1D5FD6)
-    val accentDark = Color(0xFF7FB0FF)
-    val onAccentLight = Color(0xFFFFFFFF)
-    val onAccentDark = Color(0xFF06224F)
-    val positiveLight = Color(0xFF2F7A45)
-    val positiveDark = Color(0xFF6FCF8B)
-    val negativeLight = Color(0xFFC41C29)
-    val negativeDark = Color(0xFFFF8A8F)
+/**
+ * The colour roles of the "Kassabon" house style (`docs/design.md`): receipt paper on a desk,
+ * printed in ink.
+ */
+@Immutable
+data class SplitColors(
+    /** The page ground. */
+    val desk: Color,
+    /** Receipts, sheets and dialogs. */
+    val paper: Color,
+    /** Text, primary buttons and outlines. */
+    val ink: Color,
+    /** Text on a primary button. */
+    val onInk: Color,
+    /** Labels and secondary lines. */
+    val mutedInk: Color,
+    /** Dashed dividers and field underlines. */
+    val perforation: Color,
+    /** The "BETAALD" stamp, destructive actions and errors. */
+    val stamp: Color,
+) {
+    /** Text that lies on a highlighter is the same dark ink in both themes. */
+    val onHighlighter: Color get() = OnHighlighter
 
-    // Not in the design tokens: the outline of text fields and other controls needs more
-    // contrast against a card than the hairline border has (WCAG 1.4.11 asks for 3:1).
-    val controlOutlineLight = Color(0xFF8A9096)
-    val controlOutlineDark = Color(0xFF6B7178)
+    /** The highlighter of a group. */
+    fun highlighter(color: GroupColor): Color = Highlighters.getValue(color)
+
+    /** A member's highlighter is their position in `GroupDetail.members` modulo 8. */
+    fun memberHighlighter(position: Int): Color =
+        highlighter(GroupColor.entries[position.mod(GroupColor.entries.size)])
 }
+
+internal val LightSplitColors = SplitColors(
+    desk = Color(0xFFE8E5DE),
+    paper = Color(0xFFFBF8F1),
+    ink = Color(0xFF141414),
+    onInk = Color(0xFFFBF8F1),
+    mutedInk = Color(0xFF615D55),
+    perforation = Color(0xFFB5B0A5),
+    stamp = Color(0xFFD0342C),
+)
+
+internal val DarkSplitColors = SplitColors(
+    desk = Color(0xFF171614),
+    paper = Color(0xFF24221F),
+    ink = Color(0xFFF4F0E7),
+    onInk = Color(0xFF171614),
+    mutedInk = Color(0xFFA9A499),
+    perforation = Color(0xFF4A463F),
+    stamp = Color(0xFFFF6B5E),
+)
+
+private val OnHighlighter = Color(0xFF141414)
+
+/** The eight highlighters; the same in the dark theme. */
+private val Highlighters = mapOf(
+    GroupColor.AMBER to Color(0xFFFFF04A),
+    GroupColor.ROSE to Color(0xFFFF8CCF),
+    GroupColor.GREEN to Color(0xFF8AF0AE),
+    GroupColor.CORAL to Color(0xFFFFAE5C),
+    GroupColor.BLUE to Color(0xFF8FD4FF),
+    GroupColor.LIME to Color(0xFFD2F25A),
+    GroupColor.TEAL to Color(0xFF74E6DA),
+    GroupColor.SLATE to Color(0xFFD8D4C9),
+)

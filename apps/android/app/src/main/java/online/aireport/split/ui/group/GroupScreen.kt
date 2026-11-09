@@ -5,18 +5,12 @@ import android.os.Build
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,6 +24,7 @@ import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import online.aireport.split.R
 import online.aireport.split.data.model.Expense
@@ -37,9 +32,13 @@ import online.aireport.split.data.model.ExpenseKind
 import online.aireport.split.data.model.Transfer
 import online.aireport.split.ui.common.collectAsUiState
 import online.aireport.split.ui.common.splitViewModel
+import online.aireport.split.ui.components.BottomActionBar
 import online.aireport.split.ui.components.ErrorState
+import online.aireport.split.ui.components.IconActionButton
 import online.aireport.split.ui.components.LoadingState
 import online.aireport.split.ui.components.MessageEffect
+import online.aireport.split.ui.components.PrimaryButton
+import online.aireport.split.ui.components.Segmented
 import online.aireport.split.ui.components.SplitTopBar
 
 @Composable
@@ -124,41 +123,33 @@ fun GroupScreen(
                 onBack = onBack,
                 actions = {
                     if (group != null) {
-                        IconButton(onClick = onOpenSettings) {
-                            Icon(painterResource(R.drawable.ic_settings), stringResource(R.string.settings_title))
-                        }
+                        IconActionButton(
+                            icon = painterResource(R.drawable.ic_settings),
+                            contentDescription = stringResource(R.string.settings_title),
+                            onClick = onOpenSettings,
+                        )
                     }
                 },
             )
         },
-        floatingActionButton = {
+        bottomBar = {
             if (group != null) {
-                ExtendedFloatingActionButton(
-                    onClick = onAddExpense,
-                    icon = { Icon(painterResource(R.drawable.ic_add), contentDescription = null) },
-                    text = { Text(stringResource(R.string.expense_add)) },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                )
+                BottomActionBar {
+                    PrimaryButton(stringResource(R.string.expense_add), onAddExpense, Modifier.fillMaxWidth())
+                }
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         when {
             group != null -> Column(Modifier.padding(padding)) {
-                PrimaryTabRow(
-                    selectedTabIndex = tab.ordinal,
-                    containerColor = MaterialTheme.colorScheme.background,
-                ) {
-                    GroupTab.entries.forEach { option ->
-                        Tab(
-                            selected = tab == option,
-                            onClick = { tab = option },
-                            text = { Text(stringResource(option.labelRes)) },
-                            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                Segmented(
+                    options = GroupTab.entries,
+                    selected = tab,
+                    onSelect = { tab = it },
+                    label = { stringResource(it.labelRes) },
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp),
+                )
                 PullToRefreshBox(
                     isRefreshing = state.isRefreshing,
                     onRefresh = onRefresh,

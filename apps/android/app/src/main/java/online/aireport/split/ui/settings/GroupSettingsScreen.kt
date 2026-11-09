@@ -6,14 +6,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -33,12 +32,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.em
 import online.aireport.split.R
 import online.aireport.split.data.model.GroupColor
 import online.aireport.split.data.model.GroupDetail
@@ -47,19 +44,23 @@ import online.aireport.split.ui.common.collectAsUiState
 import online.aireport.split.ui.common.splitViewModel
 import online.aireport.split.ui.components.ConfirmDialog
 import online.aireport.split.ui.components.ErrorState
-import online.aireport.split.ui.components.GroupColorPicker
+import online.aireport.split.ui.components.HighlighterPicker
+import online.aireport.split.ui.components.IconActionButton
+import online.aireport.split.ui.components.LinkButton
 import online.aireport.split.ui.components.LoadingState
 import online.aireport.split.ui.components.MAX_NAME_LENGTH
-import online.aireport.split.ui.components.MemberAvatar
 import online.aireport.split.ui.components.MessageEffect
 import online.aireport.split.ui.components.NameDialog
+import online.aireport.split.ui.components.PersonLabel
+import online.aireport.split.ui.components.Pill
 import online.aireport.split.ui.components.PrimaryButton
-import online.aireport.split.ui.components.QuietButton
+import online.aireport.split.ui.components.Receipt
+import online.aireport.split.ui.components.ReceiptPadding
 import online.aireport.split.ui.components.SecondaryButton
-import online.aireport.split.ui.components.SplitCard
 import online.aireport.split.ui.components.SplitTextField
 import online.aireport.split.ui.components.SplitTopBar
-import online.aireport.split.ui.components.memberLabel
+import online.aireport.split.ui.theme.FigureTextStyle
+import online.aireport.split.ui.theme.SplitTheme
 
 @Composable
 fun GroupSettingsRoute(groupId: String, onBack: () -> Unit, onLeftGroup: () -> Unit) {
@@ -108,6 +109,7 @@ fun GroupSettingsScreen(
     MessageEffect(state.message, snackbarHostState, onMessageShown)
 
     Scaffold(
+        modifier = Modifier.imePadding(),
         topBar = { SplitTopBar(title = stringResource(R.string.settings_title), onBack = onBack) },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
@@ -118,13 +120,14 @@ fun GroupSettingsScreen(
                     .padding(padding)
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 val enabled = !state.isBusy
-                GroupCard(group, enabled, onRename, onRecolor)
-                MembersCard(group, enabled, onAddMember, onRenameMember, onRemoveMember)
-                InviteCard(group, onShareInvite)
+                GroupReceipt(group, enabled, onRename, onRecolor)
+                MembersReceipt(group, enabled, onAddMember, onRenameMember, onRemoveMember)
+                InviteReceipt(group, onShareInvite)
                 LeaveButton(enabled, onLeave)
             }
             state.loadError != null -> ErrorState(state.loadError.resolve(), onRetry, Modifier.padding(padding))
@@ -134,11 +137,11 @@ fun GroupSettingsScreen(
 }
 
 @Composable
-private fun GroupCard(group: GroupDetail, enabled: Boolean, onRename: (String) -> Unit, onRecolor: (GroupColor) -> Unit) {
+private fun GroupReceipt(group: GroupDetail, enabled: Boolean, onRename: (String) -> Unit, onRecolor: (GroupColor) -> Unit) {
     var name by rememberSaveable(group.name) { mutableStateOf(group.name) }
     val canSave = enabled && name.isNotBlank() && name.trim() != group.name
-    SplitCard {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Receipt(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(ReceiptPadding), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             SectionTitle(stringResource(R.string.settings_group))
             SplitTextField(
                 value = name,
@@ -152,19 +155,21 @@ private fun GroupCard(group: GroupDetail, enabled: Boolean, onRename: (String) -
                 ),
                 keyboardActions = KeyboardActions(onDone = { if (canSave) onRename(name) }),
             )
-            if (canSave) PrimaryButton(stringResource(R.string.action_save), onClick = { onRename(name) })
-            Text(
-                text = stringResource(R.string.settings_color),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            GroupColorPicker(selected = group.color, onSelect = onRecolor, previewName = group.name, enabled = enabled)
+            if (canSave) SecondaryButton(stringResource(R.string.action_save), onClick = { onRename(name) }, small = true)
+            Column {
+                Text(
+                    text = stringResource(R.string.settings_color),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = SplitTheme.colors.mutedInk,
+                )
+                HighlighterPicker(selected = group.color, onSelect = onRecolor, enabled = enabled)
+            }
         }
     }
 }
 
 @Composable
-private fun MembersCard(
+private fun MembersReceipt(
     group: GroupDetail,
     enabled: Boolean,
     onAddMember: (String) -> Unit,
@@ -175,27 +180,28 @@ private fun MembersCard(
     var renamingMemberId by rememberSaveable { mutableStateOf<String?>(null) }
     var removingMemberId by rememberSaveable { mutableStateOf<String?>(null) }
 
-    SplitCard {
-        Column(Modifier.padding(vertical = 16.dp)) {
-            SectionTitle(stringResource(R.string.settings_members), Modifier.padding(horizontal = 16.dp))
-            group.members.forEachIndexed { position, member ->
-                if (position > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                MemberRow(
-                    member = member,
-                    position = position,
-                    myMemberId = group.myMemberId,
-                    enabled = enabled,
-                    onRename = { renamingMemberId = member.id },
-                    onRemove = { removingMemberId = member.id },
-                )
-            }
-            QuietButton(
-                text = stringResource(R.string.settings_add_member),
-                onClick = { addDialogOpen = true },
-                modifier = Modifier.padding(horizontal = 8.dp),
+    Receipt(Modifier.fillMaxWidth()) {
+        SectionTitle(
+            text = stringResource(R.string.settings_members),
+            modifier = Modifier.padding(start = ReceiptPadding, end = ReceiptPadding, top = ReceiptPadding, bottom = 6.dp),
+        )
+        group.members.forEachIndexed { position, member ->
+            MemberRow(
+                member = member,
+                position = position,
+                myMemberId = group.myMemberId,
                 enabled = enabled,
+                onRename = { renamingMemberId = member.id },
+                onRemove = { removingMemberId = member.id },
             )
         }
+        SecondaryButton(
+            text = stringResource(R.string.settings_add_member),
+            onClick = { addDialogOpen = true },
+            modifier = Modifier.padding(start = ReceiptPadding, end = ReceiptPadding, top = 6.dp, bottom = 12.dp),
+            enabled = enabled,
+            small = true,
+        )
     }
 
     if (addDialogOpen) {
@@ -247,63 +253,48 @@ private fun MemberRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .heightIn(min = 48.dp)
+            .padding(start = ReceiptPadding, end = ReceiptPadding - 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MemberAvatar(member.name, position)
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = memberLabel(member, myMemberId),
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (member.userId == null) {
-                Text(
-                    text = stringResource(R.string.member_no_account),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PersonLabel(member, position, myMemberId, Modifier.weight(1f, fill = false))
+            if (member.userId == null) Pill(stringResource(R.string.member_no_account))
         }
         // Only members without an account can be renamed or removed by others.
         if (member.userId == null) {
-            Row {
-                IconButton(onClick = onRename, enabled = enabled) {
-                    Icon(
-                        painterResource(R.drawable.ic_edit),
-                        stringResource(R.string.settings_rename_member_named, member.name),
-                    )
-                }
-                IconButton(onClick = onRemove, enabled = enabled) {
-                    Icon(
-                        painterResource(R.drawable.ic_delete),
-                        stringResource(R.string.settings_remove_member_named, member.name),
-                    )
-                }
-            }
+            IconActionButton(
+                icon = painterResource(R.drawable.ic_edit),
+                contentDescription = stringResource(R.string.settings_rename_member_named, member.name),
+                onClick = onRename,
+                enabled = enabled,
+            )
+            IconActionButton(
+                icon = painterResource(R.drawable.ic_delete),
+                contentDescription = stringResource(R.string.settings_remove_member_named, member.name),
+                onClick = onRemove,
+                enabled = enabled,
+            )
         }
     }
 }
 
 @Composable
-private fun InviteCard(group: GroupDetail, onShareInvite: () -> Unit) {
-    SplitCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun InviteReceipt(group: GroupDetail, onShareInvite: () -> Unit) {
+    Receipt(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(ReceiptPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             SectionTitle(stringResource(R.string.settings_invite))
             Text(
                 text = stringResource(R.string.settings_invite_hint),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = SplitTheme.colors.mutedInk,
             )
-            Text(
-                text = group.inviteCode,
-                style = MaterialTheme.typography.headlineSmall,
-                fontFamily = FontFamily.Monospace,
-                letterSpacing = 2.sp,
-            )
-            PrimaryButton(stringResource(R.string.settings_share_invite), onShareInvite)
+            Text(text = group.inviteCode, style = FigureTextStyle.copy(letterSpacing = 0.12.em))
+            PrimaryButton(stringResource(R.string.settings_share_invite), onShareInvite, Modifier.fillMaxWidth())
         }
     }
 }
@@ -311,10 +302,9 @@ private fun InviteCard(group: GroupDetail, onShareInvite: () -> Unit) {
 @Composable
 private fun LeaveButton(enabled: Boolean, onLeave: () -> Unit) {
     var confirmOpen by rememberSaveable { mutableStateOf(false) }
-    SecondaryButton(
+    LinkButton(
         text = stringResource(R.string.settings_leave),
         onClick = { confirmOpen = true },
-        modifier = Modifier.fillMaxWidth(),
         enabled = enabled,
         destructive = true,
     )
@@ -337,6 +327,6 @@ private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         modifier = modifier.semantics { heading() },
-        style = MaterialTheme.typography.titleMedium,
+        style = MaterialTheme.typography.titleLarge,
     )
 }

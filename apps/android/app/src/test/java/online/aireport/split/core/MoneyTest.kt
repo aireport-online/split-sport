@@ -17,6 +17,23 @@ class MoneyTest {
     }
 
     @Test
+    fun `formats amounts as a till prints them`() {
+        assertEquals("64,12", formatAmount(6412))
+        assertEquals("1.234,56", formatAmount(123_456))
+        assertEquals("8,00", formatAmount(-800))
+    }
+
+    @Test
+    fun `a balance always has its sign`() {
+        assertEquals("+\u00a024,95", formatSignedAmount(2495))
+        assertEquals("−\u00a021,60", formatSignedAmount(-2160))
+        assertEquals("0,00", formatSignedAmount(0))
+        assertEquals("+\u00a0€\u00a0109,55", formatSignedCents(10_955))
+        assertEquals("−\u00a0€\u00a08,00", formatSignedCents(-800))
+        assertEquals("€\u00a00,00", formatSignedCents(0))
+    }
+
+    @Test
     fun `formats cents for an input field`() {
         assertEquals("12,50", formatAmountInput(1250))
         assertEquals("0,05", formatAmountInput(5))

@@ -27,3 +27,8 @@ fun formatShortDate(date: LocalDate, today: LocalDate = LocalDate.now()): String
 
 /** "2 november 2026", for date fields. */
 fun formatLongDate(date: LocalDate): String = FULL.format(date)
+
+private val MONTH_YEAR = DateTimeFormatter.ofPattern("MMMM yyyy", DUTCH)
+
+/** "NOVEMBER 2026": the heading above a month of expenses on a receipt. */
+fun formatMonthHeading(date: LocalDate): String = MONTH_YEAR.format(date).uppercase(DUTCH)

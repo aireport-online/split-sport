@@ -3,22 +3,16 @@ package online.aireport.split.ui.expense
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,10 +20,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
@@ -41,15 +34,19 @@ import online.aireport.split.data.model.GroupDetail
 import online.aireport.split.ui.common.collectAsUiState
 import online.aireport.split.ui.common.splitViewModel
 import online.aireport.split.ui.components.AmountField
+import online.aireport.split.ui.components.BottomActionBar
 import online.aireport.split.ui.components.ConfirmDialog
 import online.aireport.split.ui.components.DateField
 import online.aireport.split.ui.components.ErrorState
+import online.aireport.split.ui.components.LinkButton
 import online.aireport.split.ui.components.LoadingState
-import online.aireport.split.ui.components.MemberDropdown
+import online.aireport.split.ui.components.MemberPicker
 import online.aireport.split.ui.components.MessageEffect
+import online.aireport.split.ui.components.Perforation
 import online.aireport.split.ui.components.PrimaryButton
-import online.aireport.split.ui.components.SecondaryButton
-import online.aireport.split.ui.components.SplitCard
+import online.aireport.split.ui.components.Receipt
+import online.aireport.split.ui.components.ReceiptPadding
+import online.aireport.split.ui.components.Segmented
 import online.aireport.split.ui.components.SplitTextField
 import online.aireport.split.ui.components.SplitTopBar
 
@@ -70,6 +67,13 @@ fun ExpenseRoute(groupId: String, expenseId: String?, onDone: () -> Unit) {
         )
     }
     val state by viewModel.uiState.collectAsUiState()
+    val receiptActions = remember(viewModel) {
+        ReceiptActions(
+            newPhotoUri = viewModel::newPhotoUri,
+            onPhoto = viewModel::scanReceipt,
+            onCameraUnavailable = viewModel::onCameraUnavailable,
+        )
+    }
 
     LaunchedEffect(state.isDone) {
         if (state.isDone) onDone()
@@ -82,9 +86,7 @@ fun ExpenseRoute(groupId: String, expenseId: String?, onDone: () -> Unit) {
         onDraftChange = viewModel::onDraftChange,
         onSave = viewModel::save,
         onDelete = viewModel::delete,
-        newPhotoUri = viewModel::newPhotoUri,
-        onReceiptPhoto = viewModel::scanReceipt,
-        onCameraUnavailable = viewModel::onCameraUnavailable,
+        receiptActions = receiptActions,
         onMessageShown = viewModel::onMessageShown,
     )
 }
@@ -97,36 +99,45 @@ fun ExpenseScreen(
     onDraftChange: (ExpenseDraft) -> Unit,
     onSave: () -> Unit,
     onDelete: () -> Unit,
-    newPhotoUri: () -> Uri,
-    onReceiptPhoto: (Uri) -> Unit,
-    onCameraUnavailable: () -> Unit,
+    receiptActions: ReceiptActions,
     onMessageShown: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val group = state.group
+    val draft = state.draft
     MessageEffect(state.message, snackbarHostState, onMessageShown)
 
     Scaffold(
+        modifier = Modifier.imePadding(),
         topBar = {
             SplitTopBar(
                 title = stringResource(if (state.isEditing) R.string.expense_edit else R.string.expense_add),
                 onBack = onBack,
             )
         },
+        bottomBar = {
+            if (draft != null) {
+                BottomActionBar {
+                    PrimaryButton(
+                        text = stringResource(R.string.action_save),
+                        onClick = onSave,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = state.canSave,
+                        loading = state.isSaving,
+                    )
+                }
+            }
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
-        val group = state.group
-        val draft = state.draft
         when {
             group != null && draft != null -> ExpenseForm(
                 state = state,
                 group = group,
                 draft = draft,
                 onDraftChange = onDraftChange,
-                onSave = onSave,
                 onDelete = onDelete,
-                newPhotoUri = newPhotoUri,
-                onReceiptPhoto = onReceiptPhoto,
-                onCameraUnavailable = onCameraUnavailable,
+                receiptActions = receiptActions,
                 modifier = Modifier.padding(padding),
             )
             state.loadError != null -> ErrorState(state.loadError.resolve(), onRetry, Modifier.padding(padding))
@@ -135,17 +146,15 @@ fun ExpenseScreen(
     }
 }
 
+/** The form as one receipt: the expense, a perforation, the split, a perforation, "Per persoon". */
 @Composable
 private fun ExpenseForm(
     state: ExpenseUiState,
     group: GroupDetail,
     draft: ExpenseDraft,
     onDraftChange: (ExpenseDraft) -> Unit,
-    onSave: () -> Unit,
     onDelete: () -> Unit,
-    newPhotoUri: () -> Uri,
-    onReceiptPhoto: (Uri) -> Unit,
-    onCameraUnavailable: () -> Unit,
+    receiptActions: ReceiptActions,
     modifier: Modifier = Modifier,
 ) {
     val enabled = !state.isBusy
@@ -155,13 +164,12 @@ private fun ExpenseForm(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .imePadding()
             .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        SplitCard {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Receipt(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(ReceiptPadding), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 SplitTextField(
                     value = draft.description,
                     onValueChange = { onDraftChange(draft.copy(description = it.take(MAX_DESCRIPTION_LENGTH))) },
@@ -179,6 +187,7 @@ private fun ExpenseForm(
                     label = stringResource(R.string.field_amount),
                     modifier = Modifier.fillMaxWidth(),
                     enabled = enabled,
+                    figure = true,
                     // In "Per regel" an empty amount means the total of the lines.
                     placeholder = draft.amountCents?.takeIf { draft.amountText.isBlank() }?.let(::formatAmountInput),
                     imeAction = ImeAction.Done,
@@ -190,68 +199,51 @@ private fun ExpenseForm(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = enabled,
                 )
-                MemberDropdown(
+                MemberPicker(
                     label = stringResource(R.string.field_paid_by),
                     members = group.members,
                     selectedId = draft.paidById,
                     onSelect = { onDraftChange(draft.copy(paidById = it)) },
                     myMemberId = group.myMemberId,
-                    modifier = Modifier.fillMaxWidth(),
                     enabled = enabled,
                 )
             }
-        }
 
-        SplitCard {
-            Column(Modifier.padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = stringResource(R.string.split_heading),
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .semantics { heading() },
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                SplitModePicker(
-                    mode = draft.mode,
-                    onModeChange = { onDraftChange(draft.copy(mode = it)) },
+            Segmented(
+                options = SplitMode.entries,
+                selected = draft.mode,
+                onSelect = { onDraftChange(draft.copy(mode = it)) },
+                label = { stringResource(it.labelRes) },
+                modifier = Modifier.padding(start = ReceiptPadding, end = ReceiptPadding, top = 4.dp, bottom = 8.dp),
+                enabled = enabled,
+            )
+            when (draft.mode) {
+                SplitMode.EQUAL -> EqualSplitEditor(group, draft, preview, onDraftChange, enabled)
+                SplitMode.EXACT -> ExactSplitEditor(group, draft, onDraftChange, enabled)
+                SplitMode.SHARES -> SharesSplitEditor(group, draft, onDraftChange, enabled)
+                SplitMode.ITEMS -> ItemsSplitEditor(
+                    group = group,
+                    draft = draft,
+                    onDraftChange = onDraftChange,
                     enabled = enabled,
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    scanEnabled = state.scanEnabled,
+                    isScanning = state.isScanning,
+                    receiptActions = receiptActions,
                 )
-                when (draft.mode) {
-                    SplitMode.EQUAL -> EqualSplitEditor(group, draft, preview, onDraftChange, enabled)
-                    SplitMode.EXACT -> ExactSplitEditor(group, draft, onDraftChange, enabled)
-                    SplitMode.SHARES -> SharesSplitEditor(group, draft, onDraftChange, enabled)
-                    SplitMode.ITEMS -> ItemsSplitEditor(
-                        group = group,
-                        draft = draft,
-                        onDraftChange = onDraftChange,
-                        enabled = enabled,
-                        scanEnabled = state.scanEnabled,
-                        isScanning = state.isScanning,
-                        newPhotoUri = newPhotoUri,
-                        onReceiptPhoto = onReceiptPhoto,
-                        onCameraUnavailable = onCameraUnavailable,
-                    )
-                }
+            }
+
+            if (preview != null) {
+                Perforation(Modifier.padding(horizontal = ReceiptPadding, vertical = 10.dp))
+                SharePreview(preview, group)
             }
         }
 
-        if (preview != null) SharePreviewCard(preview, group)
-
-        PrimaryButton(
-            text = stringResource(R.string.action_save),
-            onClick = onSave,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = state.canSave,
-            loading = state.isSaving,
-        )
         if (state.isEditing) {
-            SecondaryButton(
+            LinkButton(
                 text = stringResource(R.string.action_delete),
                 onClick = { confirmDelete = true },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.padding(top = 12.dp),
                 enabled = enabled,
-                loading = state.isDeleting,
                 destructive = true,
             )
         }
@@ -271,27 +263,6 @@ private fun ExpenseForm(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun SplitModePicker(
-    mode: SplitMode,
-    onModeChange: (SplitMode) -> Unit,
-    enabled: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    // Chips rather than a segmented control: four labels do not fit one row at a large font size.
-    FlowRow(modifier = modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        SplitMode.entries.forEach { option ->
-            FilterChip(
-                selected = mode == option,
-                onClick = { onModeChange(option) },
-                label = { Text(stringResource(option.labelRes)) },
-                enabled = enabled,
-            )
-        }
-    }
-}
-
 private val SplitMode.labelRes: Int
     get() = when (this) {
         SplitMode.EQUAL -> R.string.split_mode_equal
@@ -299,3 +270,12 @@ private val SplitMode.labelRes: Int
         SplitMode.SHARES -> R.string.split_mode_shares
         SplitMode.ITEMS -> R.string.split_mode_items
     }
+
+/** What the "Bon scannen" button needs from the view model. */
+class ReceiptActions(
+    /** A `content://` URI the camera app may write a photo to. */
+    val newPhotoUri: () -> Uri,
+    /** A photo of a receipt was taken or picked. */
+    val onPhoto: (Uri) -> Unit,
+    val onCameraUnavailable: () -> Unit,
+)

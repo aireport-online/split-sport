@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,9 +19,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,25 +26,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentType
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import online.aireport.split.R
 import online.aireport.split.ui.common.collectAsUiState
 import online.aireport.split.ui.common.splitViewModel
+import online.aireport.split.ui.components.ErrorText
+import online.aireport.split.ui.components.LinkButton
 import online.aireport.split.ui.components.MAX_NAME_LENGTH
 import online.aireport.split.ui.components.PrimaryButton
-import online.aireport.split.ui.components.QuietButton
-import online.aireport.split.ui.components.SplitCard
+import online.aireport.split.ui.components.Receipt
+import online.aireport.split.ui.components.ReceiptPadding
 import online.aireport.split.ui.components.SplitTextField
+import online.aireport.split.ui.components.Wordmark
 
 @Composable
 fun AuthRoute() {
@@ -63,6 +62,7 @@ fun AuthRoute() {
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AuthScreen(
     state: AuthUiState,
@@ -75,41 +75,28 @@ fun AuthScreen(
     onSubmit: () -> Unit,
 ) {
     val isRegistering = state.mode == AuthMode.REGISTER
+    val enabled = !state.isSubmitting
     Box(
         modifier = Modifier
             .fillMaxSize()
             .safeDrawingPadding()
             .imePadding()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 32.dp),
+            .padding(horizontal = 20.dp, vertical = 40.dp),
         contentAlignment = Alignment.TopCenter,
     ) {
         Column(
-            modifier = Modifier.widthIn(max = 480.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            modifier = Modifier.widthIn(max = 440.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = stringResource(R.string.app_name),
-                    modifier = Modifier.semantics { heading() },
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = stringResource(R.string.auth_tagline),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Wordmark(fontSize = 84.sp)
+            Spacer(Modifier.height(36.dp))
 
-            SplitCard {
+            Receipt(Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(ReceiptPadding),
+                    verticalArrangement = Arrangement.spacedBy(18.dp),
                 ) {
-                    ModeSwitch(state.mode, onModeChange, enabled = !state.isSubmitting)
-                    Spacer(Modifier.height(4.dp))
-
                     if (isRegistering) {
                         SplitTextField(
                             value = state.name,
@@ -118,7 +105,7 @@ fun AuthScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .semantics { contentType = ContentType.PersonFullName },
-                            enabled = !state.isSubmitting,
+                            enabled = enabled,
                             keyboardOptions = KeyboardOptions(
                                 capitalization = KeyboardCapitalization.Words,
                                 imeAction = ImeAction.Next,
@@ -128,11 +115,11 @@ fun AuthScreen(
                     SplitTextField(
                         value = state.email,
                         onValueChange = onEmailChange,
-                        label = stringResource(R.string.field_email),
+                        label = stringResource(R.string.field_email_address),
                         modifier = Modifier
                             .fillMaxWidth()
                             .semantics { contentType = ContentType.EmailAddress },
-                        enabled = !state.isSubmitting,
+                        enabled = enabled,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                     )
                     SplitTextField(
@@ -144,20 +131,19 @@ fun AuthScreen(
                             .semantics {
                                 contentType = if (isRegistering) ContentType.NewPassword else ContentType.Password
                             },
-                        enabled = !state.isSubmitting,
+                        enabled = enabled,
                         supportingText = if (isRegistering) stringResource(R.string.auth_password_hint) else null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { onSubmit() }),
                         visualTransformation = PasswordVisualTransformation(),
                     )
-
                     AnimatedVisibility(visible = state.advancedOpen) {
                         SplitTextField(
                             value = state.serverUrl,
                             onValueChange = onServerUrlChange,
                             label = stringResource(R.string.field_server),
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = !state.isSubmitting,
+                            enabled = enabled,
                             placeholder = stringResource(R.string.auth_server_placeholder),
                             supportingText = stringResource(R.string.auth_server_hint),
                             keyboardOptions = KeyboardOptions(
@@ -167,48 +153,34 @@ fun AuthScreen(
                             ),
                         )
                     }
-
-                    if (state.error != null) {
-                        Text(
-                            text = state.error.resolve(),
-                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-
-                    PrimaryButton(
-                        text = stringResource(if (isRegistering) R.string.auth_register else R.string.auth_login),
-                        onClick = onSubmit,
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = state.canSubmit,
-                        loading = state.isSubmitting,
-                    )
+                    if (state.error != null) ErrorText(state.error.resolve())
                 }
             }
 
-            QuietButton(
-                text = stringResource(R.string.auth_advanced),
-                onClick = onToggleAdvanced,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
+            Spacer(Modifier.height(24.dp))
+            PrimaryButton(
+                text = stringResource(if (isRegistering) R.string.auth_register else R.string.auth_login),
+                onClick = onSubmit,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = state.canSubmit,
+                loading = state.isSubmitting,
             )
-        }
-    }
-}
-
-@Composable
-private fun ModeSwitch(mode: AuthMode, onModeChange: (AuthMode) -> Unit, enabled: Boolean) {
-    val labels = listOf(AuthMode.LOGIN to R.string.auth_login, AuthMode.REGISTER to R.string.auth_register)
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-        labels.forEachIndexed { index, (option, label) ->
-            SegmentedButton(
-                selected = mode == option,
-                onClick = { onModeChange(option) },
-                shape = SegmentedButtonDefaults.itemShape(index, labels.size, MaterialTheme.shapes.small),
-                enabled = enabled,
-                icon = {},
-                label = { Text(stringResource(label), maxLines = 1) },
-            )
+            Spacer(Modifier.height(8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.Center,
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(if (isRegistering) R.string.auth_have_account else R.string.auth_no_account),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                LinkButton(
+                    text = stringResource(if (isRegistering) R.string.auth_login else R.string.auth_register),
+                    onClick = { onModeChange(if (isRegistering) AuthMode.LOGIN else AuthMode.REGISTER) },
+                    enabled = enabled,
+                )
+            }
+            LinkButton(stringResource(R.string.auth_advanced), onToggleAdvanced)
         }
     }
 }

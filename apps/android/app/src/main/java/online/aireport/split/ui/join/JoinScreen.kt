@@ -2,48 +2,50 @@ package online.aireport.split.ui.join
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import online.aireport.split.R
 import online.aireport.split.data.model.InvitePreview
 import online.aireport.split.ui.common.collectAsUiState
 import online.aireport.split.ui.common.splitViewModel
-import online.aireport.split.ui.components.GroupTile
+import online.aireport.split.ui.components.BottomActionBar
+import online.aireport.split.ui.components.ErrorText
+import online.aireport.split.ui.components.GroupName
+import online.aireport.split.ui.components.PersonChip
 import online.aireport.split.ui.components.PrimaryButton
+import online.aireport.split.ui.components.Receipt
+import online.aireport.split.ui.components.ReceiptPadding
 import online.aireport.split.ui.components.SecondaryButton
-import online.aireport.split.ui.components.SplitCard
 import online.aireport.split.ui.components.SplitTextField
 import online.aireport.split.ui.components.SplitTopBar
+import online.aireport.split.ui.theme.FigureTextStyle
+import online.aireport.split.ui.theme.SplitTheme
 
 @Composable
 fun JoinRoute(initialCode: String?, onBack: () -> Unit, onOpenGroup: (String) -> Unit) {
@@ -76,20 +78,34 @@ fun JoinScreen(
     onIdentityChange: (Identity) -> Unit,
     onJoin: () -> Unit,
 ) {
+    val invite = state.invite
     Scaffold(
+        modifier = Modifier.imePadding(),
         topBar = { SplitTopBar(title = stringResource(R.string.join_title), onBack = onBack) },
+        bottomBar = {
+            if (invite != null) {
+                BottomActionBar {
+                    PrimaryButton(
+                        text = stringResource(if (invite.alreadyMember) R.string.join_open_group else R.string.join_action),
+                        onClick = onJoin,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = state.canJoin,
+                        loading = state.isJoining,
+                    )
+                }
+            }
+        },
     ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            SplitCard {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Receipt(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(ReceiptPadding), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     SplitTextField(
                         value = state.code,
                         onValueChange = onCodeChange,
@@ -97,6 +113,7 @@ fun JoinScreen(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !state.isJoining,
                         supportingText = stringResource(R.string.join_code_hint),
+                        textStyle = FigureTextStyle.copy(letterSpacing = 0.12.em),
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Characters,
                             autoCorrectEnabled = false,
@@ -105,7 +122,7 @@ fun JoinScreen(
                         ),
                         keyboardActions = KeyboardActions(onSearch = { onLookUp() }),
                     )
-                    if (state.invite == null) {
+                    if (invite == null) {
                         SecondaryButton(
                             text = stringResource(R.string.join_look_up),
                             onClick = onLookUp,
@@ -114,60 +131,32 @@ fun JoinScreen(
                             loading = state.isLookingUp,
                         )
                     }
+                    if (state.error != null) ErrorText(state.error.resolve())
                 }
             }
 
-            if (state.invite != null) {
-                InviteCard(state.invite, state, onIdentityChange)
-            }
-
-            if (state.error != null) {
-                Text(
-                    text = state.error.resolve(),
-                    modifier = Modifier
-                        .padding(horizontal = 4.dp)
-                        .semantics { liveRegion = LiveRegionMode.Polite },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-
-            if (state.invite != null) {
-                PrimaryButton(
-                    text = stringResource(if (state.invite.alreadyMember) R.string.join_open_group else R.string.join_action),
-                    onClick = onJoin,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = state.canJoin,
-                    loading = state.isJoining,
-                )
-            }
+            if (invite != null) InviteReceipt(invite, state, onIdentityChange)
         }
     }
 }
 
+/** The group behind the code and, when it has members without an account, "Wie ben jij?". */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun InviteCard(invite: InvitePreview, state: JoinUiState, onIdentityChange: (Identity) -> Unit) {
-    SplitCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                GroupTile(invite.name, invite.color)
-                Column {
-                    Text(invite.name, style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = pluralStringResource(R.plurals.member_count, invite.memberCount, invite.memberCount),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+private fun InviteReceipt(invite: InvitePreview, state: JoinUiState, onIdentityChange: (Identity) -> Unit) {
+    val muted = SplitTheme.colors.mutedInk
+    Receipt(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(ReceiptPadding), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            GroupName(invite.name, invite.color)
+            Text(
+                text = pluralStringResource(R.plurals.member_count, invite.memberCount, invite.memberCount),
+                style = MaterialTheme.typography.bodyMedium,
+                color = muted,
+            )
             if (invite.alreadyMember) {
                 Text(
                     text = stringResource(R.string.join_already_member),
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    modifier = Modifier.padding(top = 8.dp),
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }
@@ -175,42 +164,34 @@ private fun InviteCard(invite: InvitePreview, state: JoinUiState, onIdentityChan
                 Text(
                     text = stringResource(R.string.join_who_are_you),
                     modifier = Modifier
-                        .padding(horizontal = 16.dp)
+                        .padding(top = 12.dp)
                         .semantics { heading() },
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                 )
-                Column(Modifier.selectableGroup()) {
+                Text(stringResource(R.string.join_who_are_you_hint), style = MaterialTheme.typography.bodyMedium, color = muted)
+                FlowRow(
+                    modifier = Modifier.selectableGroup(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     invite.unclaimedMembers.forEach { member ->
                         val identity = Identity.ExistingMember(member.id)
-                        IdentityOption(member.name, state.identity == identity, !state.isJoining) {
-                            onIdentityChange(identity)
-                        }
+                        PersonChip(
+                            name = member.name,
+                            selected = state.identity == identity,
+                            onSelectedChange = { onIdentityChange(identity) },
+                            enabled = !state.isJoining,
+                            role = Role.RadioButton,
+                        )
                     }
-                    IdentityOption(
-                        label = stringResource(R.string.join_not_listed),
+                    PersonChip(
+                        name = stringResource(R.string.join_not_listed),
                         selected = state.identity == Identity.NewMember,
+                        onSelectedChange = { onIdentityChange(Identity.NewMember) },
                         enabled = !state.isJoining,
-                        onSelect = { onIdentityChange(Identity.NewMember) },
+                        role = Role.RadioButton,
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun IdentityOption(label: String, selected: Boolean, enabled: Boolean, onSelect: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onSelect)
-            .heightIn(min = 48.dp)
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // The row is the option; the radio button only shows the state.
-        RadioButton(selected = selected, onClick = null, enabled = enabled)
-        Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }

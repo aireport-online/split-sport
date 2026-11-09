@@ -1,16 +1,17 @@
 package online.aireport.split.ui.components
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
@@ -20,19 +21,20 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import online.aireport.split.R
 import online.aireport.split.core.formatLongDate
+import online.aireport.split.ui.theme.SplitTheme
 
-/** Shows a calendar date like a text field; tapping it opens the date picker. */
+/** Shows a calendar date like a field; tapping it opens the date picker. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateField(
@@ -42,35 +44,25 @@ fun DateField(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val colors = SplitTheme.colors
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
 
-    Surface(
-        onClick = { pickerOpen = true },
-        modifier = modifier
-            .heightIn(min = 56.dp)
-            .semantics { role = Role.Button },
-        enabled = enabled,
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+    Column(
+        modifier
+            .alpha(if (enabled) 1f else DISABLED_ALPHA)
+            .clickable(enabled = enabled, role = Role.Button) { pickerOpen = true },
     ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = colors.mutedInk)
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 34.dp)
+                .fieldUnderline(colors.perforation, solid = null)
+                .padding(bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(text = formatLongDate(date), style = MaterialTheme.typography.bodyLarge)
-            }
-            Icon(
-                painter = painterResource(R.drawable.ic_calendar),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(formatLongDate(date), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            Icon(painterResource(R.drawable.ic_calendar), contentDescription = null, Modifier.size(20.dp))
         }
     }
 
@@ -82,7 +74,7 @@ fun DateField(
         DatePickerDialog(
             onDismissRequest = { pickerOpen = false },
             confirmButton = {
-                QuietButton(
+                LinkButton(
                     text = stringResource(R.string.action_ok),
                     onClick = {
                         pickerState.selectedDateMillis?.let { millis ->
@@ -93,8 +85,9 @@ fun DateField(
                 )
             },
             dismissButton = {
-                QuietButton(stringResource(R.string.action_cancel), onClick = { pickerOpen = false })
+                LinkButton(stringResource(R.string.action_cancel), onClick = { pickerOpen = false })
             },
+            tonalElevation = 0.dp,
         ) {
             DatePicker(state = pickerState)
         }

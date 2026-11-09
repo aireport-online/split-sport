@@ -9,128 +9,79 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import online.aireport.split.data.model.GroupColor
-
-/** Brand colours that have no Material 3 role of their own. */
-@Immutable
-data class SplitColors(
-    /** Money someone gets back. */
-    val positive: Color,
-    val tints: TintPalette,
-)
-
-private val LightSplitColors = SplitColors(positive = Brand.positiveLight, tints = TintPalette.Light)
-private val DarkSplitColors = SplitColors(positive = Brand.positiveDark, tints = TintPalette.Dark)
 
 private val LocalSplitColors = staticCompositionLocalOf { LightSplitColors }
 
 /**
- * The design tokens on Material 3 roles. The page is `background`/`surface`, cards are the
- * `surfaceContainer` roles up to `High`, muted text is `onSurfaceVariant`, the hairline border
- * is `outlineVariant`. Containers reuse the blue, green, coral and slate tints.
+ * The house style on Material 3 colour roles, for the stock components that are still used
+ * (dialogs, menus, sheets, the date picker, snackbars). The page is `background`/`surface`,
+ * everything laid on it is paper (all `surfaceContainer` roles, so there are no tonal
+ * surfaces), ink is `primary` and `outline`, the perforation is `outlineVariant`, stamp red is
+ * `error`.
  */
-private val LightColors: ColorScheme = with(TintPalette.Light) {
-    lightColorScheme(
-        primary = Brand.accentLight,
-        onPrimary = Brand.onAccentLight,
-        primaryContainer = of(GroupColor.BLUE).background,
-        onPrimaryContainer = of(GroupColor.BLUE).ink,
-        inversePrimary = Brand.accentDark,
-        secondary = Brand.accentLight,
-        onSecondary = Brand.onAccentLight,
-        secondaryContainer = of(GroupColor.BLUE).background,
-        onSecondaryContainer = of(GroupColor.BLUE).ink,
-        tertiary = Brand.positiveLight,
-        onTertiary = Color.White,
-        tertiaryContainer = of(GroupColor.GREEN).background,
-        onTertiaryContainer = of(GroupColor.GREEN).ink,
-        background = Brand.groundLight,
-        onBackground = Brand.textLight,
-        surface = Brand.groundLight,
-        onSurface = Brand.textLight,
-        surfaceVariant = of(GroupColor.SLATE).background,
-        onSurfaceVariant = Brand.mutedLight,
-        surfaceTint = Brand.surfaceLight,
-        inverseSurface = Brand.textLight,
-        inverseOnSurface = Brand.textDark,
-        error = Brand.negativeLight,
-        onError = Color.White,
-        errorContainer = of(GroupColor.CORAL).background,
-        onErrorContainer = of(GroupColor.CORAL).ink,
-        outline = Brand.controlOutlineLight,
-        outlineVariant = Brand.borderLight,
+private fun SplitColors.toColorScheme(dark: Boolean): ColorScheme {
+    val scheme = if (dark) darkColorScheme() else lightColorScheme()
+    return scheme.copy(
+        primary = ink,
+        onPrimary = onInk,
+        primaryContainer = ink,
+        onPrimaryContainer = onInk,
+        inversePrimary = onInk,
+        secondary = ink,
+        onSecondary = onInk,
+        secondaryContainer = ink,
+        onSecondaryContainer = onInk,
+        tertiary = ink,
+        onTertiary = onInk,
+        tertiaryContainer = ink,
+        onTertiaryContainer = onInk,
+        background = desk,
+        onBackground = ink,
+        surface = desk,
+        onSurface = ink,
+        surfaceVariant = paper,
+        onSurfaceVariant = mutedInk,
+        surfaceTint = paper,
+        inverseSurface = ink,
+        inverseOnSurface = onInk,
+        error = stamp,
+        onError = onInk,
+        errorContainer = paper,
+        onErrorContainer = stamp,
+        outline = ink,
+        outlineVariant = perforation,
         scrim = Color.Black,
-        surfaceBright = Brand.groundLight,
-        surfaceDim = Brand.groundLight,
-        surfaceContainerLowest = Brand.surfaceLight,
-        surfaceContainerLow = Brand.surfaceLight,
-        surfaceContainer = Brand.surfaceLight,
-        surfaceContainerHigh = Brand.surfaceLight,
-        surfaceContainerHighest = of(GroupColor.SLATE).background,
+        surfaceBright = desk,
+        surfaceDim = desk,
+        surfaceContainerLowest = paper,
+        surfaceContainerLow = paper,
+        surfaceContainer = paper,
+        surfaceContainerHigh = paper,
+        surfaceContainerHighest = paper,
     )
 }
 
-private val DarkColors: ColorScheme = with(TintPalette.Dark) {
-    darkColorScheme(
-        primary = Brand.accentDark,
-        onPrimary = Brand.onAccentDark,
-        primaryContainer = of(GroupColor.BLUE).background,
-        onPrimaryContainer = of(GroupColor.BLUE).ink,
-        inversePrimary = Brand.accentLight,
-        secondary = Brand.accentDark,
-        onSecondary = Brand.onAccentDark,
-        secondaryContainer = of(GroupColor.BLUE).background,
-        onSecondaryContainer = of(GroupColor.BLUE).ink,
-        tertiary = Brand.positiveDark,
-        onTertiary = of(GroupColor.GREEN).background,
-        tertiaryContainer = of(GroupColor.GREEN).background,
-        onTertiaryContainer = of(GroupColor.GREEN).ink,
-        background = Brand.groundDark,
-        onBackground = Brand.textDark,
-        surface = Brand.groundDark,
-        onSurface = Brand.textDark,
-        surfaceVariant = of(GroupColor.SLATE).background,
-        onSurfaceVariant = Brand.mutedDark,
-        surfaceTint = Brand.surfaceDark,
-        inverseSurface = Brand.textDark,
-        inverseOnSurface = Brand.textLight,
-        error = Brand.negativeDark,
-        onError = of(GroupColor.CORAL).background,
-        errorContainer = of(GroupColor.CORAL).background,
-        onErrorContainer = of(GroupColor.CORAL).ink,
-        outline = Brand.controlOutlineDark,
-        outlineVariant = Brand.borderDark,
-        scrim = Color.Black,
-        surfaceBright = Brand.groundDark,
-        surfaceDim = Brand.groundDark,
-        surfaceContainerLowest = Brand.surfaceDark,
-        surfaceContainerLow = Brand.surfaceDark,
-        surfaceContainer = Brand.surfaceDark,
-        surfaceContainerHigh = Brand.surfaceDark,
-        surfaceContainerHighest = of(GroupColor.SLATE).background,
-    )
-}
-
-/** Cards have a 20 dp radius, controls 10 dp. */
+/** Controls have a 4 dp radius; paper (sheets, dialogs) has barely rounded 2 dp corners. */
 private val SplitShapes = Shapes(
-    extraSmall = RoundedCornerShape(10.dp),
-    small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(20.dp),
-    large = RoundedCornerShape(20.dp),
-    extraLarge = RoundedCornerShape(20.dp),
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(4.dp),
+    medium = RoundedCornerShape(2.dp),
+    large = RoundedCornerShape(2.dp),
+    extraLarge = RoundedCornerShape(2.dp),
 )
 
-/** The Split brand theme; follows the system's light or dark setting, never dynamic colour. */
+/** The "Kassabon" theme; follows the system's light or dark setting, never dynamic colour. */
 @Composable
 fun SplitTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalSplitColors provides if (darkTheme) DarkSplitColors else LightSplitColors) {
+    val colors = if (darkTheme) DarkSplitColors else LightSplitColors
+    CompositionLocalProvider(LocalSplitColors provides colors) {
         MaterialTheme(
-            colorScheme = if (darkTheme) DarkColors else LightColors,
+            colorScheme = colors.toColorScheme(darkTheme),
+            typography = SplitTypography,
             shapes = SplitShapes,
             content = content,
         )

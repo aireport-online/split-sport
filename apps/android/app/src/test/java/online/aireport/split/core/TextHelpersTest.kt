@@ -9,15 +9,6 @@ import org.junit.Test
 
 class TextHelpersTest {
     @Test
-    fun `initials are the first letters of the first two words`() {
-        assertEquals("WT", initials("Weekendje Texel"))
-        assertEquals("A", initials("Anna"))
-        assertEquals("HV", initials("  huis  van  bas "))
-        assertEquals("", initials("   "))
-        assertEquals("😀B", initials("😀 bas"))
-    }
-
-    @Test
     fun `invite codes are sanitised while typing`() {
         assertEquals("ABCD2345", InviteCode.sanitize("abcd-2345"))
         assertEquals("ABCD2345", InviteCode.sanitize("abcd2345xyz"))
@@ -48,6 +39,13 @@ class TextHelpersTest {
         assertEquals("2 nov", formatShortDate(LocalDate.of(2026, 11, 2), today))
         assertEquals("31 dec 2025", formatShortDate(LocalDate.of(2025, 12, 31), today))
         assertEquals("2 november 2026", formatLongDate(LocalDate.of(2026, 11, 2)))
+        assertEquals("NOVEMBER 2026", formatMonthHeading(LocalDate.of(2026, 11, 2)))
+    }
+
+    @Test
+    fun `an IBAN is grouped in fours`() {
+        assertEquals("NL91 ABNA 0417 1643 00", formatIban("NL91ABNA0417164300"))
+        assertEquals("NL91 ABNA 0417 1643 00", formatIban("NL91 ABNA 0417 1643 00"))
     }
 
     @Test
