@@ -81,6 +81,12 @@ To edit an expense, rebuild the split from the stored expense:
 | POST | `/groups/:id/settlements` | `{ fromMemberId, toMemberId, amountCents, date? }` | 201 `Expense` with `kind: "settlement"` |
 | POST | `/receipts/scan` | `{ imageBase64, mediaType }` | `{ merchant, date, totalCents, items: {name, amountCents}[] }` |
 
+A payment (`kind: "settlement"`) cannot be edited: `PUT` only accepts expenses. Delete it and record
+it again.
+
+Every endpoint except `/config`, `/auth/register` and `/auth/login` needs a token, the invite
+endpoints included.
+
 Receipt scanning accepts `image/jpeg`, `image/png`, `image/webp` and `image/gif`, at most about 8 MB of
 image. Clients scale photos down to 1600 px on the long side and send JPEG. `merchant`, `date` and
 `totalCents` can be `null`. The endpoint answers `503 scan_unavailable` when the server has no
@@ -88,3 +94,23 @@ Anthropic API key; check `GET /config` and hide the scan button in that case.
 
 Invite codes are 8 characters (`A–Z`, `2–9`), case-insensitive. The share link is
 `<server>/join/<code>`; the mobile apps also open `split://join/<code>`.
+
+## Error codes
+
+Clients show `message` and only need to act on `unauthorized` and `scan_unavailable`; the rest is
+listed for completeness.
+
+| Status | Code | When |
+| --- | --- | --- |
+| 400 | `invalid_json`, `validation_error` | The body is not valid JSON or a field is wrong |
+| 400 | `invalid_amount`, `no_participants`, `duplicate_member`, `invalid_weight`, `exact_sum_mismatch`, `invalid_item`, `item_unassigned` | The split cannot be computed |
+| 400 | `unknown_member` | A member id does not belong to the group |
+| 401 | `unauthorized`, `invalid_credentials` | Missing or expired token; wrong e-mail or password |
+| 403 | `forbidden` | Renaming or removing a member that has an account |
+| 404 | `not_found` | Unknown group, expense, member, invite code or path |
+| 409 | `email_taken`, `member_in_use`, `member_taken` | Registering twice; removing a member with expenses; claiming a member someone else took |
+| 413 | `too_large` | Body over 256 KB (12 MB for a receipt photo) |
+| 422 | `no_receipt`, `scan_failed` | The photo shows no receipt, or could not be read |
+| 429 | `rate_limited` | Too many login attempts or scans; see `Retry-After` |
+| 502, 503 | `scan_failed`, `scan_busy`, `scan_unavailable` | The receipt reader failed, is busy, or is not configured |
+| 500 | `internal_error` | Anything else |
