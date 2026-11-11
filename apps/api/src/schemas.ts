@@ -1,4 +1,4 @@
-import { GROUP_COLORS, MAX_AMOUNT_CENTS, MAX_WEIGHT } from "@split/core";
+import { GROUP_COLORS, MAX_AMOUNT_CENTS, MAX_WEIGHT, SPORTS } from "@split/core";
 import { z } from "zod";
 
 const trimmed = (max: number) => z.string().trim().min(1).max(max);
@@ -37,9 +37,21 @@ export const updateMeSchema = z.object({
   iban: iban.nullable().optional(),
 });
 
+/** An optional short text; an empty string clears it. */
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((value) => (value === "" ? null : value))
+    .nullable();
+
 export const createGroupSchema = z.object({
   name: trimmed(60),
   color: z.enum(GROUP_COLORS).optional(),
+  sport: z.enum(SPORTS).default("overig"),
+  club: optionalText(60).optional(),
+  season: optionalText(20).optional(),
   currency: z
     .string()
     .regex(/^[A-Z]{3}$/)
@@ -49,6 +61,23 @@ export const createGroupSchema = z.object({
 export const updateGroupSchema = z.object({
   name: trimmed(60).optional(),
   color: z.enum(GROUP_COLORS).optional(),
+  sport: z.enum(SPORTS).optional(),
+  club: optionalText(60).optional(),
+  season: optionalText(20).optional(),
+  treasurerMemberId: memberId.optional(),
+});
+
+export const fineSchema = z.object({
+  name: trimmed(60),
+  amountCents: cents.min(1),
+});
+
+export const chargeSchema = z.object({
+  type: z.enum(["fine", "contribution"]),
+  description: trimmed(120),
+  amountCents: cents.min(1),
+  memberIds: z.array(memberId).min(1).max(100),
+  date: isoDate.optional(),
 });
 
 export const memberNameSchema = z.object({ name: trimmed(60) });

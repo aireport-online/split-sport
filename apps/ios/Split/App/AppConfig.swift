@@ -8,6 +8,10 @@ enum AppConfig {
     #if DEBUG
     static let defaultServerURL = URL(string: "http://localhost:8787")!
     #else
-    static let defaultServerURL = URL(string: "https://split.aireport.online")!
+    static let defaultServerURL = releaseServerURL
     #endif
+
+    /// The server of release builds. A placeholder that never resolves: set it to
+    /// the real Split Sport server before shipping (see README).
+    static let releaseServerURL = URL(string: "https://set-the-split-sport-server.invalid")!
 }

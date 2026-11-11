@@ -1,30 +1,43 @@
 import Foundation
 import Observation
 
-/// "Groep": the expenses and balances of one group.
+/// "Team": everything that happened, the team pot and the balances of one team.
 @MainActor
 @Observable
 public final class GroupDetailViewModel {
-    /// One line of "Uitgaven": "Boodschappen ........ 64,12" with the payer highlighted below it.
-    public struct ExpenseRow: Identifiable, Equatable, Sendable {
-        public let expense: Expense
-        /// The description, or "Bas betaalde Anna" for a payment between members.
-        public let title: String
-        /// The amount as a till prints it, without the euro sign.
-        public let amount: String
-        public let payerName: String
-        public let payerColor: GroupColor
-        /// What follows the payer's name: "betaalde · 2 nov", or "betaling · 2 nov" for a payment.
-        public let detail: String
-        /// "je krijgt € 6,66" / "je betaalt € 3,33"; nil when it changes nothing for you.
-        public let impact: String?
-
-        public var id: String { expense.id }
-        /// A payment between members; it carries the "BETAALD" stamp.
-        public var isSettlement: Bool { expense.kind == .settlement }
+    /// The rubber stamp on an entry that is not an ordinary expense.
+    public enum EntryStamp: Sendable {
+        /// "BETAALD": a payment between members or with the pot.
+        case paid
+        /// "BOETE".
+        case fine
+        /// "INLEG".
+        case contribution
     }
 
-    /// The expenses of one month under their heading ("NOVEMBER 2026").
+    /// One line of "Uitgaven": "Wedstrijdballen ........ 47,50" with a second line below it.
+    public struct ExpenseRow: Identifiable, Equatable, Sendable {
+        public let expense: Expense
+        /// The description, or "Bas betaalde Teamkas" for a payment.
+        public let title: String
+        /// The total as a till prints it, without the euro sign.
+        public let amount: String
+        /// Who the second line starts with: the payer, or the fined members; empty for a contribution.
+        public let parties: [Party]
+        /// How many fined members are not shown because the line would get too long.
+        public let hiddenPartyCount: Int
+        /// What follows them: "betaalde · 2 nov", "betaling · 2 nov", "2 nov" or "5 × 25,00 · 2 nov".
+        public let detail: String
+        /// "je krijgt € 6,66" / "je betaalt € 3,33" on an expense; nil when it changes nothing for you.
+        public let impact: String?
+        public let stamp: EntryStamp?
+
+        public var id: String { expense.id }
+        /// Only ordinary expenses can be changed; payments, fines and contributions can only be removed.
+        public var isEditable: Bool { expense.kind == .expense }
+    }
+
+    /// The entries of one month under their heading ("NOVEMBER 2026").
     public struct ExpenseMonth: Identifiable, Equatable, Sendable {
         public let heading: String
         public let rows: [ExpenseRow]
@@ -32,11 +45,26 @@ public final class GroupDetailViewModel {
         public var id: String { heading }
     }
 
-    /// One member in "Saldo".
+    /// The "Teamkas" receipt: the cash, what is still open and who keeps it.
+    public struct PotSummary: Equatable, Sendable {
+        /// The kasstand as the large figure: "€ 47,50".
+        public let cash: String
+        /// "Nog te ontvangen": what members still owe the pot, as a receipt line without the euro sign.
+        public let toReceive: String
+        /// "Nog uit te betalen": what the pot owes members who advanced something.
+        public let toPay: String
+        /// The penningmeester; nil when the team has none.
+        public let treasurer: Party?
+        /// The treasurer's IBAN as stored, for the clipboard; nil when unknown.
+        public let treasurerIBAN: String?
+
+        /// The IBAN in groups of four, for reading.
+        public var treasurerIBANText: String? { treasurerIBAN.map(Wording.groupedIBAN) }
+    }
+
+    /// One team member in "Saldo": what they have with the other members.
     public struct BalanceRow: Identifiable, Equatable, Sendable {
-        public let id: String
-        public let name: String
-        public let color: GroupColor
+        public let party: Party
         public let isMe: Bool
         public let hasAccount: Bool
         public let balanceCents: Int
@@ -44,20 +72,20 @@ public final class GroupDetailViewModel {
         public let balance: String
         /// The balance in words for VoiceOver: "krijgt € 24,95".
         public let spokenBalance: String
+
+        public var id: String { party.id }
     }
 
-    /// One suggested payment under "Vereffenen".
+    /// One suggested payment, with the pot ("Teamkas") or between members ("Vereffenen").
     public struct TransferRow: Identifiable, Equatable, Sendable {
         public let transfer: Transfer
-        public let payerName: String
-        public let payerColor: GroupColor
-        public let receiverName: String
-        public let receiverColor: GroupColor
+        public let payer: Party
+        public let receiver: Party
         /// The amount as a till prints it, without the euro sign.
         public let amount: String
         /// The whole payment as a sentence for VoiceOver: "Bas betaalt Anna € 3,33".
         public let spoken: String
-        /// The receiver's IBAN as stored, for the clipboard; nil when they have none.
+        /// The IBAN to pay to, for the clipboard: the receiver's, or the treasurer's when paying the pot.
         public let iban: String?
 
         public var id: String { "\(transfer.fromMemberId)>\(transfer.toMemberId)" }
@@ -66,8 +94,23 @@ public final class GroupDetailViewModel {
         public var ibanText: String? { iban.map(Wording.groupedIBAN) }
     }
 
+    /// One line of the "Boetekoning" ranking.
+    public struct FineRankRow: Identifiable, Equatable, Sendable {
+        public let party: Party
+        /// "3×".
+        public let count: String
+        /// The total of their fines, without the euro sign.
+        public let total: String
+        /// The first of the ranking carries the "KONING" stamp.
+        public let isKing: Bool
+        /// The line as a sentence for VoiceOver: "Bas, 3 boetes, € 9,00".
+        public let spoken: String
+
+        public var id: String { party.id }
+    }
+
     public let groupId: String
-    /// Known from the groups list before the detail has loaded.
+    /// Known from the teams list before the detail has loaded.
     public private(set) var name: String
     public private(set) var color: GroupColor
     public private(set) var detail: GroupDetail?
@@ -75,7 +118,7 @@ public final class GroupDetailViewModel {
     public private(set) var isLoading = false
     /// Why loading failed. With `detail` still nil there is nothing else to show.
     public var errorMessage: String?
-    /// Why an action (such as deleting an expense) failed.
+    /// Why an action (such as removing an entry) failed.
     public var actionError: String?
 
     @ObservationIgnored private let api: SplitAPI
@@ -104,14 +147,14 @@ public final class GroupDetailViewModel {
         }
     }
 
-    /// Takes over a group the server returned after a change (for example from the settings screen).
+    /// Takes over a team the server returned after a change (for example from the settings screen).
     public func apply(_ detail: GroupDetail) {
         self.detail = detail
         name = detail.name
         color = detail.color
     }
 
-    /// Deletes an expense or a payment and reloads the balances.
+    /// Removes an expense, a payment, a fine or a contribution and reloads the balances.
     public func delete(_ expense: Expense) async {
         do {
             try await api.deleteExpense(groupId: groupId, expenseId: expense.id)
@@ -122,9 +165,9 @@ public final class GroupDetailViewModel {
         await load()
     }
 
-    // MARK: Presentation
+    // MARK: Uitgaven
 
-    /// The expenses, newest first, grouped by month.
+    /// Everything that happened, newest first, grouped by month.
     public var expenseMonths: [ExpenseMonth] {
         guard let detail else { return [] }
         var months: [(heading: String, rows: [ExpenseRow])] = []
@@ -140,32 +183,75 @@ public final class GroupDetailViewModel {
         return months.map { ExpenseMonth(heading: $0.heading, rows: $0.rows) }
     }
 
+    /// How many fined members a line names before it says "+2".
+    private static let shownPartyLimit = 3
+
     private static func row(for expense: Expense, in detail: GroupDetail) -> ExpenseRow {
-        let payer = detail.memberName(expense.paidById)
         let date = expense.date.shortDutch()
-        let isSettlement = expense.kind == .settlement
-        let receiver = detail.memberName(expense.shares.first?.memberId ?? "")
-        return ExpenseRow(
-            expense: expense,
-            title: isSettlement ? "\(payer) betaalde \(receiver)" : expense.description,
-            amount: Money.plain(expense.amountCents),
-            payerName: payer,
-            payerColor: detail.color(ofMember: expense.paidById),
-            detail: isSettlement ? "betaling · \(date)" : "betaalde · \(date)",
-            impact: isSettlement ? nil : Wording.expenseImpact(expense.impactCents(on: detail.myMemberId))
+        let amount = Money.plain(expense.amountCents)
+        let payer = detail.party(expense.paidById)
+
+        switch expense.kind {
+        case .expense:
+            return ExpenseRow(
+                expense: expense, title: expense.description, amount: amount,
+                parties: [payer], hiddenPartyCount: 0, detail: "betaalde · \(date)",
+                impact: Wording.expenseImpact(expense.impactCents(on: detail.myMemberId)), stamp: nil
+            )
+        case .settlement:
+            let receiver = detail.memberName(expense.shares.first?.memberId ?? "")
+            return ExpenseRow(
+                expense: expense, title: "\(payer.name) betaalde \(receiver)", amount: amount,
+                parties: [payer], hiddenPartyCount: 0, detail: "betaling · \(date)", impact: nil, stamp: .paid
+            )
+        case .fine:
+            let fined = expense.shares.map { detail.party($0.memberId) }
+            return ExpenseRow(
+                expense: expense, title: expense.description, amount: amount,
+                parties: Array(fined.prefix(shownPartyLimit)),
+                hiddenPartyCount: max(0, fined.count - shownPartyLimit),
+                detail: date, impact: nil, stamp: .fine
+            )
+        case .contribution:
+            let each = Money.plain(expense.shares.first?.amountCents ?? 0)
+            return ExpenseRow(
+                expense: expense, title: expense.description, amount: amount,
+                parties: [], hiddenPartyCount: 0, detail: "\(expense.shares.count) × \(each) · \(date)",
+                impact: nil, stamp: .contribution
+            )
+        }
+    }
+
+    // MARK: Teamkas
+
+    public var potSummary: PotSummary? {
+        guard let detail else { return nil }
+        let treasurer = detail.treasurerMemberId.flatMap(detail.member)
+        return PotSummary(
+            cash: Money.cash(detail.pot.cashCents),
+            toReceive: Money.plain(detail.pot.toReceiveCents),
+            toPay: Money.plain(detail.pot.toPayCents),
+            treasurer: treasurer.map { detail.party($0.id) },
+            treasurerIBAN: treasurer?.iban
         )
     }
 
+    /// What every member has with the pot: "Bas → Teamkas 12,00" or "Teamkas → Chris 40,00".
+    public var potTransferRows: [TransferRow] {
+        transferRows { $0.payer.isPot || $0.receiver.isPot }
+    }
+
+    // MARK: Saldo
+
+    /// Every team member with what they have with the other members.
     public var balanceRows: [BalanceRow] {
         guard let detail else { return [] }
-        return detail.members.map { member in
-            let cents = detail.balanceCents(of: member.id)
+        return detail.parties.filter { !$0.isPot }.map { party in
+            let cents = detail.balance(of: party.id)?.peerCents ?? 0
             return BalanceRow(
-                id: member.id,
-                name: member.name,
-                color: detail.color(ofMember: member.id),
-                isMe: member.id == detail.myMemberId,
-                hasAccount: member.hasAccount,
+                party: party,
+                isMe: party.id == detail.myMemberId,
+                hasAccount: detail.member(party.id)?.hasAccount ?? false,
                 balanceCents: cents,
                 balance: Money.signedPlain(cents),
                 spokenBalance: Wording.memberBalance(cents)
@@ -173,21 +259,43 @@ public final class GroupDetailViewModel {
         }
     }
 
-    public var transferRows: [TransferRow] {
+    /// "Vereffenen": the suggested payments between members.
+    public var peerTransferRows: [TransferRow] {
+        transferRows { !$0.payer.isPot && !$0.receiver.isPot }
+    }
+
+    /// "Boetekoning": most fines first; empty while nobody has a fine.
+    public var fineRanking: [FineRankRow] {
         guard let detail else { return [] }
-        return detail.transfers.map { transfer in
-            let payer = detail.memberName(transfer.fromMemberId)
-            let receiver = detail.memberName(transfer.toMemberId)
-            return TransferRow(
-                transfer: transfer,
-                payerName: payer,
-                payerColor: detail.color(ofMember: transfer.fromMemberId),
-                receiverName: receiver,
-                receiverColor: detail.color(ofMember: transfer.toMemberId),
-                amount: Money.plain(transfer.amountCents),
-                spoken: "\(payer) betaalt \(receiver) \(Money.euro(transfer.amountCents))",
-                iban: detail.member(transfer.toMemberId)?.iban
+        return detail.fineStats.enumerated().map { index, stat in
+            let party = detail.party(stat.memberId)
+            let fines = stat.count == 1 ? "1 boete" : "\(stat.count) boetes"
+            return FineRankRow(
+                party: party,
+                count: "\(stat.count)×",
+                total: Money.plain(stat.totalCents),
+                isKing: index == 0,
+                spoken: "\(party.name), \(fines), \(Money.euro(stat.totalCents))"
             )
         }
+    }
+
+    private func transferRows(where isIncluded: (TransferRow) -> Bool) -> [TransferRow] {
+        guard let detail else { return [] }
+        let treasurerIBAN = detail.treasurerMemberId.flatMap(detail.member)?.iban
+        return detail.transfers.map { transfer in
+            let payer = detail.party(transfer.fromMemberId)
+            let receiver = detail.party(transfer.toMemberId)
+            return TransferRow(
+                transfer: transfer,
+                payer: payer,
+                receiver: receiver,
+                amount: Money.plain(transfer.amountCents),
+                spoken: "\(payer.name) betaalt \(receiver.name) \(Money.euro(transfer.amountCents))",
+                // Paying the pot is, in real life, a transfer to the penningmeester.
+                iban: receiver.isPot ? treasurerIBAN : detail.member(receiver.id)?.iban
+            )
+        }
+        .filter(isIncluded)
     }
 }

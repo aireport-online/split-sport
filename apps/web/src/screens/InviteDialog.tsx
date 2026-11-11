@@ -9,7 +9,7 @@ export const inviteLink = (code: string) => `${window.location.origin}/join/${co
 export function InviteDialog({ group, onClose }: { group: GroupDetail; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   const link = inviteLink(group.inviteCode);
-  const text = `Doe mee met "${group.name}" op Split`;
+  const text = `Doe mee met "${group.name}" op Split Sport`;
 
   const copy = async () => {
     await navigator.clipboard.writeText(link);
@@ -20,7 +20,7 @@ export function InviteDialog({ group, onClose }: { group: GroupDetail; onClose: 
   return (
     <Dialog title="Uitnodigen" narrow onClose={onClose}>
       <p className="muted">
-        Deel de link of de code. Wie meedoet kiest zijn eigen naam uit de groep, of komt er als nieuw lid bij.
+        Deel de link of de code. Wie meedoet kiest zijn eigen naam uit het team, of komt er als nieuw teamlid bij.
       </p>
       <p className="invite-code" style={{ margin: "20px 0 4px" }}>
         {group.inviteCode}
@@ -34,7 +34,7 @@ export function InviteDialog({ group, onClose }: { group: GroupDetail; onClose: 
           {copied ? "Gekopieerd" : "Link kopiëren"}
         </Button>
         {typeof navigator.share === "function" && (
-          <Button onClick={() => void navigator.share({ title: "Split", text, url: link }).catch(() => {})}>
+          <Button onClick={() => void navigator.share({ title: "Split Sport", text, url: link }).catch(() => {})}>
             <Share2 size={16} /> Deel uitnodiging
           </Button>
         )}

@@ -1,8 +1,10 @@
 import type {
   ApiError,
   AuthResponse,
+  ChargeInput,
   Expense,
   ExpenseInput,
+  FineInput,
   GroupColor,
   GroupDetail,
   GroupSummary,
@@ -10,8 +12,19 @@ import type {
   ReceiptScan,
   ServerConfig,
   SettlementInput,
+  Sport,
   User,
 } from "@split/core";
+
+export interface TeamInput {
+  name: string;
+  color?: GroupColor;
+  sport: Sport;
+  club: string;
+  season: string;
+}
+
+export type TeamPatch = Partial<TeamInput> & { treasurerMemberId?: string };
 
 const TOKEN_KEY = "split.token";
 
@@ -82,10 +95,14 @@ export const api = {
   deleteMe: () => request<void>("DELETE", "/me"),
 
   groups: () => request<{ groups: GroupSummary[] }>("GET", "/groups").then((r) => r.groups),
-  createGroup: (input: { name: string; color?: GroupColor }) => request<GroupDetail>("POST", "/groups", input),
+  createGroup: (input: TeamInput) => request<GroupDetail>("POST", "/groups", input),
   group: (groupId: string) => request<GroupDetail>("GET", `/groups/${groupId}`),
-  updateGroup: (groupId: string, input: { name?: string; color?: GroupColor }) =>
-    request<GroupDetail>("PATCH", `/groups/${groupId}`, input),
+  updateGroup: (groupId: string, input: TeamPatch) => request<GroupDetail>("PATCH", `/groups/${groupId}`, input),
+
+  addFine: (groupId: string, input: FineInput) => request<GroupDetail>("POST", `/groups/${groupId}/fines`, input),
+  updateFine: (groupId: string, fineId: string, input: FineInput) =>
+    request<GroupDetail>("PUT", `/groups/${groupId}/fines/${fineId}`, input),
+  removeFine: (groupId: string, fineId: string) => request<GroupDetail>("DELETE", `/groups/${groupId}/fines/${fineId}`),
   leaveGroup: (groupId: string) => request<void>("POST", `/groups/${groupId}/leave`),
 
   addMember: (groupId: string, name: string) => request<GroupDetail>("POST", `/groups/${groupId}/members`, { name }),
@@ -106,6 +123,7 @@ export const api = {
     request<Expense>("PUT", `/groups/${groupId}/expenses/${expenseId}`, input),
   deleteExpense: (groupId: string, expenseId: string) =>
     request<void>("DELETE", `/groups/${groupId}/expenses/${expenseId}`),
+  createCharge: (groupId: string, input: ChargeInput) => request<Expense>("POST", `/groups/${groupId}/charges`, input),
   createSettlement: (groupId: string, input: SettlementInput) =>
     request<Expense>("POST", `/groups/${groupId}/settlements`, input),
 

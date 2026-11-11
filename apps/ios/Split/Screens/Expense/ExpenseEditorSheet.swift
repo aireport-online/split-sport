@@ -6,6 +6,8 @@ import SwiftUI
 struct ExpenseEditorSheet: View {
     @State private var model: ExpenseEditorViewModel
     @State private var isConfirmingDelete = false
+    /// Whether the "Rit berekenen" helper is unfolded.
+    @State private var showsTrip = false
     @Environment(\.dismiss) private var dismiss
 
     init(model: ExpenseEditorViewModel) {
@@ -16,6 +18,9 @@ struct ExpenseEditorSheet: View {
         NavigationStack {
             Desk {
                 detailsReceipt
+                if showsTrip {
+                    TripReceipt(model: model)
+                }
                 if model.canScanReceipt {
                     ReceiptScanReceipt(model: model)
                 }
@@ -65,11 +70,17 @@ struct ExpenseEditorSheet: View {
         }
     }
 
-    /// Omschrijving, bedrag, betaald door and datum.
+    /// Omschrijving, bedrag, betaald door (a team member or the Teamkas) and datum.
     private var detailsReceipt: some View {
         Receipt {
             PaperField(label: "Omschrijving", text: $model.description)
             AmountField(label: "Bedrag", text: $model.amountText, style: .figure)
+            if !showsTrip {
+                LinkButton(title: "Rit berekenen") {
+                    showsTrip = true
+                }
+                .font(.tillSmall)
+            }
             MemberMenu(label: "Betaald door", members: model.members, selection: $model.paidById)
             DatePicker("Datum", selection: dateBinding, displayedComponents: .date)
         }
@@ -117,7 +128,7 @@ private struct PerPersonReceipt: View {
             case .shares(let shares):
                 ForEach(shares) { share in
                     LeaderRow(amount: share.amount) {
-                        Highlight(name: share.name, color: share.color)
+                        PartyName(party: share.party)
                     }
                     .accessibilityElement(children: .combine)
                 }
@@ -135,6 +146,41 @@ private struct PerPersonReceipt: View {
                 Text(message)
                     .foregroundStyle(Theme.mutedInk)
             }
+        }
+    }
+}
+
+/// "Rit berekenen": kilometres × a rate per kilometre fills in the amount and,
+/// when it is still empty, the description.
+@MainActor
+private struct TripReceipt: View {
+    @Bindable var model: ExpenseEditorViewModel
+
+    var body: some View {
+        Receipt {
+            ReceiptTitle(text: "Rit berekenen")
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text("Kilometers")
+                    .accessibilityHidden(true)
+                Spacer(minLength: 8)
+                AmountField(label: "Kilometers", text: $model.tripKilometersText, prompt: "0")
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text("Tarief per km")
+                    .accessibilityHidden(true)
+                Spacer(minLength: 8)
+                AmountField(label: "Tarief per kilometer in euro", text: $model.tripRateText)
+            }
+            if let trip = model.trip {
+                Text(trip.summary)
+                    .font(.tillSmall)
+                    .foregroundStyle(Theme.mutedInk)
+            }
+            Button("Invullen") {
+                model.applyTrip()
+            }
+            .buttonStyle(PaperButtonStyle(isCompact: true))
+            .disabled(model.trip == nil)
         }
     }
 }

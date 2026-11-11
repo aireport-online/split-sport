@@ -34,11 +34,14 @@ import online.aireport.split.ui.components.AmountField
 import online.aireport.split.ui.components.DISABLED_ALPHA
 import online.aireport.split.ui.components.IconActionButton
 import online.aireport.split.ui.components.InkCheckbox
-import online.aireport.split.ui.components.PersonLabel
+import online.aireport.split.ui.components.MemberLabel
 import online.aireport.split.ui.components.ReceiptPadding
 import online.aireport.split.ui.theme.SplitTheme
 
-/** "Gelijk": tick who takes part; every row shows that person's amount. */
+/**
+ * "Gelijk": tick who takes part; every row shows that person's amount. The Teamkas is in the list
+ * too; ticking only the Teamkas puts the expense at the pot's cost.
+ */
 @Composable
 fun EqualSplitEditor(
     group: GroupDetail,
@@ -65,7 +68,7 @@ fun EqualSplitEditor(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.weight(1f)) { PersonLabel(member, position, group.myMemberId) }
+                Box(Modifier.weight(1f)) { MemberLabel(member, position, group.myMemberId) }
                 InkCheckbox(checked)
                 Text(
                     text = shares[member.id]?.let(::formatAmount) ?: stringResource(R.string.amount_none),
@@ -76,6 +79,14 @@ fun EqualSplitEditor(
                     maxLines = 1,
                 )
             }
+        }
+        if (draft.isChargedToPot(group.potMemberId)) {
+            Text(
+                text = stringResource(R.string.split_charged_to_pot),
+                modifier = Modifier.padding(start = ReceiptPadding, end = ReceiptPadding, top = 6.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = SplitTheme.colors.mutedInk,
+            )
         }
     }
 }
@@ -91,7 +102,7 @@ fun ExactSplitEditor(
     Column(Modifier.padding(horizontal = ReceiptPadding)) {
         group.members.forEachIndexed { position, member ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.weight(1f)) { PersonLabel(member, position, group.myMemberId) }
+                Box(Modifier.weight(1f)) { MemberLabel(member, position, group.myMemberId) }
                 AmountField(
                     value = draft.exactAmounts[member.id].orEmpty(),
                     onValueChange = { onDraftChange(draft.setExactAmount(member.id, it)) },
@@ -139,7 +150,7 @@ fun SharesSplitEditor(
                     .padding(start = ReceiptPadding, end = ReceiptPadding - 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.weight(1f)) { PersonLabel(member, position, group.myMemberId) }
+                Box(Modifier.weight(1f)) { MemberLabel(member, position, group.myMemberId) }
                 IconActionButton(
                     icon = painterResource(R.drawable.ic_remove),
                     contentDescription = stringResource(R.string.split_shares_less, member.name),

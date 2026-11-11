@@ -33,25 +33,32 @@ import online.aireport.split.R
 import online.aireport.split.ui.theme.BarlowCondensed
 import online.aireport.split.ui.theme.SplitTheme
 
-/** The rubber stamp on a payment between members: red, outlined and rotated -8°. */
+/**
+ * A rubber stamp: outlined and rotated -8°. In stamp red by default ("BETAALD", "BOETE",
+ * "KONING"); "INLEG" and "SPORT" are stamped in ink.
+ */
 @Composable
-fun Stamp(text: String, modifier: Modifier = Modifier) {
-    val red = SplitTheme.colors.stamp
+fun Stamp(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = SplitTheme.colors.stamp,
+    style: TextStyle = MaterialTheme.typography.titleSmall,
+) {
     Text(
         text = text.uppercase(),
         modifier = modifier
             .rotate(-8f)
-            .border(2.dp, red, RoundedCornerShape(3.dp))
+            .border(2.dp, color, RoundedCornerShape(3.dp))
             .padding(horizontal = 7.dp, vertical = 1.dp),
-        color = red,
-        style = MaterialTheme.typography.titleSmall.copy(letterSpacing = 0.04.em),
+        color = color,
+        style = style.copy(letterSpacing = 0.04.em),
         maxLines = 1,
     )
 }
 
 /**
- * "Split", torn in two: a dashed perforation in ink runs between "Sp" and "lit" and extends a
- * little above and below the letters.
+ * The wordmark of Split Sport: "Split", torn in two by a dashed perforation in ink between "Sp"
+ * and "lit" that extends a little above and below the letters, with the stamp "SPORT" after it.
  */
 @Composable
 fun Wordmark(fontSize: TextUnit, modifier: Modifier = Modifier) {
@@ -60,31 +67,40 @@ fun Wordmark(fontSize: TextUnit, modifier: Modifier = Modifier) {
     val color = LocalContentColor.current
     val em = with(LocalDensity.current) { fontSize.toDp() }
     Row(
-        modifier = modifier
-            .height(em)
-            .clearAndSetSemantics { contentDescription = name },
+        modifier = modifier.clearAndSetSemantics { contentDescription = name },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(name.take(2), style = style, color = color)
-        Spacer(
-            Modifier
-                .padding(horizontal = em * 0.07f)
-                .width(em * 0.05f)
-                .fillMaxHeight()
-                .drawBehind {
-                    val overshoot = size.height * 0.1f
-                    drawLine(
-                        color = color,
-                        start = Offset(size.width / 2, -overshoot),
-                        end = Offset(size.width / 2, size.height + overshoot),
-                        strokeWidth = size.width,
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(size.height * 0.13f, size.height * 0.08f)),
-                    )
-                },
+        Row(Modifier.height(em), verticalAlignment = Alignment.CenterVertically) {
+            Text(WORDMARK.take(2), style = style, color = color)
+            Spacer(
+                Modifier
+                    .padding(horizontal = em * 0.07f)
+                    .width(em * 0.05f)
+                    .fillMaxHeight()
+                    .drawBehind {
+                        val overshoot = size.height * 0.1f
+                        drawLine(
+                            color = color,
+                            start = Offset(size.width / 2, -overshoot),
+                            end = Offset(size.width / 2, size.height + overshoot),
+                            strokeWidth = size.width,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(size.height * 0.13f, size.height * 0.08f)),
+                        )
+                    },
+            )
+            Text(WORDMARK.drop(2), style = style, color = color)
+        }
+        Stamp(
+            text = stringResource(R.string.wordmark_stamp),
+            modifier = Modifier.padding(start = em * 0.12f, top = em * 0.2f),
+            color = color,
+            style = style.copy(fontSize = fontSize * 0.28f, lineHeight = fontSize * 0.34f),
         )
-        Text(name.drop(2), style = style, color = color)
     }
 }
+
+/** The part of the name that is torn in two; the app's full name is "Split Sport". */
+private const val WORDMARK = "Split"
 
 /**
  * The highlighter stroke under a receipt line, showing who had it: one equal part per person,

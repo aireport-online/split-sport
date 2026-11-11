@@ -1,12 +1,22 @@
 import type { Expense, GroupDetail, Member, SplitMode } from "@split/core";
 import { useMutation } from "@tanstack/react-query";
-import { Minus, Plus, ScanLine, Trash2 } from "lucide-react";
+import { Car, Minus, Plus, ScanLine, Trash2 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-import { Button, ConfirmDialog, Dialog, ErrorBanner, Field, Leader, Mark, Segmented } from "../components/ui";
+import { Button, ConfirmDialog, Dialog, ErrorBanner, Field, Leader, Person, Segmented } from "../components/ui";
 import { api, errorMessage } from "../lib/api";
-import { memberColor, money, plain } from "../lib/format";
+import { memberColor, money, plain, players } from "../lib/format";
 import { useConfig, useInvalidateGroups } from "../lib/queries";
-import { applyScan, draftFromExpense, evaluateDraft, itemsTotalCents, newDraft, newItem, type ExpenseDraft } from "./draft";
+import {
+  DEFAULT_RATE_PER_KM,
+  applyRide,
+  applyScan,
+  draftFromExpense,
+  evaluateDraft,
+  itemsTotalCents,
+  newDraft,
+  newItem,
+  type ExpenseDraft,
+} from "./draft";
 import { scanReceipt } from "./scan";
 
 const MODES: { value: SplitMode; label: string }[] = [
@@ -86,7 +96,7 @@ export function ExpenseDialog({
             className="input"
             value={draft.description}
             onChange={(event) => update({ description: event.target.value })}
-            placeholder="Boodschappen, diner, taxi…"
+            placeholder="Derde helft, ballen, toernooi…"
             maxLength={120}
             autoFocus={!expense}
           />
@@ -105,6 +115,11 @@ export function ExpenseDialog({
             <input className="input" type="date" value={draft.date} onChange={(event) => update({ date: event.target.value })} />
           </Field>
         </div>
+        <RideHelper onApply={(km, rate) => {
+          const next = applyRide(draft, km, rate);
+          if (next) setDraft(next);
+          return next !== null;
+        }} />
         <Field label="Betaald door">
           <select className="select" value={draft.paidById} onChange={(event) => update({ paidById: event.target.value })}>
             {group.members.map((member) => (
@@ -161,9 +176,7 @@ export function ExpenseDialog({
             <p className="preview__title">Per persoon</p>
             {result.shares.map((share) => (
               <div key={share.memberId} className="line">
-                <Mark color={memberColor(group.members, share.memberId)}>
-                  {group.members.find((m) => m.id === share.memberId)?.name}
-                </Mark>
+                <Person members={group.members} memberId={share.memberId} />
                 <Leader />
                 <span className="line__amount">{plain(share.amountCents)}</span>
               </div>
@@ -190,7 +203,7 @@ export function ExpenseDialog({
       {confirmDelete && (
         <ConfirmDialog
           title="Uitgave verwijderen?"
-          text={`"${expense?.description}" verdwijnt voor iedereen in de groep en de saldo's worden opnieuw berekend.`}
+          text={`"${expense?.description}" verdwijnt voor het hele team en de saldo's worden opnieuw berekend.`}
           confirmLabel="Verwijderen"
           busy={remove.isPending}
           error={remove.error ? errorMessage(remove.error) : null}
@@ -210,9 +223,55 @@ interface EditorProps {
 
 const MemberLabel = ({ group, member }: { group: GroupDetail; member: Member }) => (
   <span className="split-list__name">
-    <Mark color={memberColor(group.members, member.id)}>{member.name}</Mark>
+    <Person members={group.members} memberId={member.id} />
   </span>
 );
+
+/** Works out the amount of a ride to an away game: kilometres times a rate. */
+function RideHelper({ onApply }: { onApply: (kilometres: string, ratePerKm: string) => boolean }) {
+  const [open, setOpen] = useState(false);
+  const [kilometres, setKilometres] = useState("");
+  const [rate, setRate] = useState(DEFAULT_RATE_PER_KM);
+  const [invalid, setInvalid] = useState(false);
+
+  if (!open) {
+    return (
+      <p style={{ margin: "10px 0 18px" }}>
+        <button type="button" className="link small" onClick={() => setOpen(true)}>
+          <Car size={14} style={{ verticalAlign: "-2px" }} /> Rit berekenen
+        </button>
+      </p>
+    );
+  }
+  return (
+    <div className="ride">
+      <Field label="Kilometers">
+        <input
+          className="input"
+          inputMode="decimal"
+          value={kilometres}
+          onChange={(event) => setKilometres(event.target.value)}
+          placeholder="84"
+          autoFocus
+        />
+      </Field>
+      <Field label="Per km">
+        <input className="input" inputMode="decimal" value={rate} onChange={(event) => setRate(event.target.value)} />
+      </Field>
+      <Button
+        small
+        onClick={() => {
+          const applied = onApply(kilometres, rate);
+          setInvalid(!applied);
+          if (applied) setOpen(false);
+        }}
+      >
+        Invullen
+      </Button>
+      {invalid && <p className="ride__problem small">Vul het aantal kilometers en een bedrag per km in.</p>}
+    </div>
+  );
+}
 
 function EqualEditor({ group, draft, update }: EditorProps) {
   const toggle = (memberId: string) =>
@@ -289,7 +348,7 @@ function SharesEditor({ group, draft, update }: EditorProps) {
 }
 
 function ItemsEditor({ group, draft, update, children }: EditorProps & { children?: React.ReactNode }) {
-  const allIds = group.members.map((m) => m.id);
+  const allIds = players(group.members).map((m) => m.id);
   const patchItem = (key: string, patch: Partial<ExpenseDraft["items"][number]>) =>
     update({ items: draft.items.map((item) => (item.key === key ? { ...item, ...patch } : item)) });
   const total = itemsTotalCents(draft);
@@ -341,8 +400,8 @@ function ItemsEditor({ group, draft, update, children }: EditorProps & { childre
                   <button
                     key={member.id}
                     type="button"
-                    className="chip"
-                    data-hl={memberColor(group.members, member.id)}
+                    className={member.kind === "pot" ? "chip chip--plain" : "chip"}
+                    data-hl={member.kind === "pot" ? undefined : memberColor(group.members, member.id)}
                     aria-pressed={active}
                     onClick={() =>
                       patchItem(item.key, {
@@ -354,7 +413,7 @@ function ItemsEditor({ group, draft, update, children }: EditorProps & { childre
                   </button>
                 );
               })}
-              {group.members.length > 2 && (
+              {allIds.length > 2 && (
                 <button
                   type="button"
                   className="chip chip--plain"

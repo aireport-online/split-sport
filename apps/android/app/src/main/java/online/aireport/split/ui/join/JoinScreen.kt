@@ -34,6 +34,7 @@ import online.aireport.split.R
 import online.aireport.split.data.model.InvitePreview
 import online.aireport.split.ui.common.collectAsUiState
 import online.aireport.split.ui.common.splitViewModel
+import online.aireport.split.ui.common.teamLine
 import online.aireport.split.ui.components.BottomActionBar
 import online.aireport.split.ui.components.ErrorText
 import online.aireport.split.ui.components.GroupName
@@ -140,7 +141,7 @@ fun JoinScreen(
     }
 }
 
-/** The group behind the code and, when it has members without an account, "Wie ben jij?". */
+/** The team behind the code with its sport and club and, when it has members without an account, "Wie ben jij?". */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun InviteReceipt(invite: InvitePreview, state: JoinUiState, onIdentityChange: (Identity) -> Unit) {
@@ -148,6 +149,7 @@ private fun InviteReceipt(invite: InvitePreview, state: JoinUiState, onIdentityC
     Receipt(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(ReceiptPadding), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             GroupName(invite.name, invite.color)
+            Text(teamLine(invite.sport, invite.club), style = MaterialTheme.typography.bodyMedium, color = muted)
             Text(
                 text = pluralStringResource(R.plurals.member_count, invite.memberCount, invite.memberCount),
                 style = MaterialTheme.typography.bodyMedium,

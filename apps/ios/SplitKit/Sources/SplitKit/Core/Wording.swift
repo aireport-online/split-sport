@@ -22,9 +22,22 @@ public enum Wording {
         return "je \(memberBalance(cents))"
     }
 
-    /// "1 lid" / "3 leden".
+    /// "1 teamlid" / "5 teamleden".
     public static func memberCount(_ count: Int) -> String {
-        count == 1 ? "1 lid" : "\(count) leden"
+        count == 1 ? "1 teamlid" : "\(count) teamleden"
+    }
+
+    /// "Hockey · MHC Oostpoort · 2026/27": sport, club and season; club and season only when filled in.
+    public static func teamLine(sport: Sport, club: String?, season: String?) -> String {
+        ([sport.label, club, season] as [String?])
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
+    }
+
+    /// "5 × € 25,00 = € 125,00": an amount per person and what it adds up to.
+    public static func chargeTotal(count: Int, amountCents: Int) -> String {
+        "\(count) × \(Money.euro(amountCents)) = \(Money.euro(count * amountCents))"
     }
 
     /// "NL91 ABNA 0417 1643 00": an IBAN in groups of four for reading.

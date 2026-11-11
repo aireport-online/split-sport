@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -181,17 +182,25 @@ private fun ExpenseForm(
                         imeAction = ImeAction.Next,
                     ),
                 )
-                AmountField(
-                    value = draft.amountText,
-                    onValueChange = { onDraftChange(draft.copy(amountText = it)) },
-                    label = stringResource(R.string.field_amount),
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = enabled,
-                    figure = true,
-                    // In "Per regel" an empty amount means the total of the lines.
-                    placeholder = draft.amountCents?.takeIf { draft.amountText.isBlank() }?.let(::formatAmountInput),
-                    imeAction = ImeAction.Done,
-                )
+                Column {
+                    AmountField(
+                        value = draft.amountText,
+                        onValueChange = { onDraftChange(draft.copy(amountText = it)) },
+                        label = stringResource(R.string.field_amount),
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = enabled,
+                        figure = true,
+                        // In "Per regel" an empty amount means the total of the lines.
+                        placeholder = draft.amountCents?.takeIf { draft.amountText.isBlank() }?.let(::formatAmountInput),
+                        imeAction = ImeAction.Done,
+                    )
+                    TripButton(
+                        enabled = enabled,
+                        onTrip = { costCents, description -> onDraftChange(draft.withTrip(costCents, description)) },
+                        // Lines the text of the link up with the fields; its touch area sticks out.
+                        modifier = Modifier.offset(x = (-8).dp),
+                    )
+                }
                 DateField(
                     date = draft.date,
                     onDateChange = { onDraftChange(draft.copy(date = it)) },

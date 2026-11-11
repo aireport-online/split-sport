@@ -9,8 +9,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import online.aireport.split.data.GroupChanges
 import online.aireport.split.data.GroupRepository
+import online.aireport.split.data.NewTeam
 import online.aireport.split.data.api.ApiException
-import online.aireport.split.data.model.GroupColor
 import online.aireport.split.data.model.GroupSummary
 import online.aireport.split.ui.common.UiText
 import online.aireport.split.ui.common.toUiText
@@ -18,16 +18,16 @@ import online.aireport.split.ui.common.toUiText
 data class GroupsUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
-    /** Set when the groups could not be loaded and there is nothing to show. */
+    /** Set when the teams could not be loaded and there is nothing to show. */
     val loadError: UiText? = null,
     val groups: List<GroupSummary> = emptyList(),
     val isCreating: Boolean = false,
-    /** The group that was just created and should be opened. */
+    /** The team that was just created and should be opened. */
     val createdGroupId: String? = null,
     /** A one-off message for the snackbar. */
     val message: UiText? = null,
 ) {
-    /** The balance over all groups. */
+    /** The balance over all teams. */
     val totalBalanceCents: Long get() = groups.sumOf { it.myBalanceCents }
 }
 
@@ -53,12 +53,12 @@ class GroupsViewModel(
         load()
     }
 
-    fun createGroup(name: String, color: GroupColor) {
+    fun createTeam(team: NewTeam) {
         if (_uiState.value.isCreating) return
         _uiState.update { it.copy(isCreating = true) }
         viewModelScope.launch {
             try {
-                val group = groupRepository.createGroup(name, color)
+                val group = groupRepository.createGroup(team)
                 _uiState.update { it.copy(isCreating = false, createdGroupId = group.id) }
             } catch (e: ApiException) {
                 _uiState.update { it.copy(isCreating = false, message = e.toUiText()) }

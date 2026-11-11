@@ -48,6 +48,7 @@ export const newItem = (name = "", amount = "", memberIds: string[] = []): ItemD
 /** "12,50" for an input field. */
 export const amountText = (cents: number): string => (cents / 100).toFixed(2).replace(".", ",");
 
+/** A new expense is shared by the team members; the pot only takes part when someone ticks it. */
 export function newDraft(group: GroupDetail): ExpenseDraft {
   return {
     description: "",
@@ -55,10 +56,31 @@ export function newDraft(group: GroupDetail): ExpenseDraft {
     date: todayIso(),
     paidById: group.myMemberId,
     mode: "equal",
-    equalIds: group.members.map((m) => m.id),
+    equalIds: group.members.filter((m) => m.kind === "player").map((m) => m.id),
     exact: {},
-    weights: Object.fromEntries(group.members.map((m) => [m.id, 1])),
+    weights: Object.fromEntries(group.members.map((m) => [m.id, m.kind === "player" ? 1 : 0])),
     items: [newItem()],
+  };
+}
+
+/** The tax-free rate per kilometre that most teams use for driving to away games. */
+export const DEFAULT_RATE_PER_KM = "0,23";
+
+/**
+ * Fills in the amount of a ride from its distance and a rate per kilometre,
+ * and names the expense when it has no description yet. Returns null while
+ * either number is not usable.
+ */
+export function applyRide(draft: ExpenseDraft, kilometres: string, ratePerKm: string): ExpenseDraft | null {
+  const km = Number(kilometres.trim().replace(",", "."));
+  const rateCents = parseAmount(ratePerKm);
+  if (!Number.isFinite(km) || km <= 0 || rateCents === null || rateCents <= 0) return null;
+  const amountCents = Math.round(km * rateCents);
+  if (amountCents <= 0) return null;
+  return {
+    ...draft,
+    amount: amountText(amountCents),
+    description: draft.description.trim() || `Rit (${String(km).replace(".", ",")} km)`,
   };
 }
 

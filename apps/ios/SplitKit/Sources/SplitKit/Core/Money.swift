@@ -62,6 +62,11 @@ public enum Money {
         "€" + space + plain(cents)
     }
 
+    /// The cash in the pot: "€ 47,50", or "− € 5,00" when more went out than came in.
+    public static func cash(_ cents: Int) -> String {
+        cents < 0 ? signedEuro(cents) : euro(cents)
+    }
+
     /// A balance as a headline figure: "+ € 109,55", "− € 8,00" or "€ 0,00".
     public static func signedEuro(_ cents: Int) -> String {
         sign(cents) + euro(cents)

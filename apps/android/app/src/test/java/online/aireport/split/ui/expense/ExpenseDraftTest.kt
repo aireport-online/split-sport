@@ -5,35 +5,29 @@ import online.aireport.split.core.Share
 import online.aireport.split.core.Split
 import online.aireport.split.core.SplitErrorCode
 import online.aireport.split.core.SplitMode
+import online.aireport.split.core.Weight
 import online.aireport.split.data.api.SplitJson
 import online.aireport.split.data.model.Expense
 import online.aireport.split.data.model.ExpenseItem
 import online.aireport.split.data.model.ExpenseKind
 import online.aireport.split.data.model.ExpenseShare
-import online.aireport.split.data.model.GroupColor
-import online.aireport.split.data.model.GroupDetail
-import online.aireport.split.data.model.Member
 import online.aireport.split.data.model.ReceiptLine
 import online.aireport.split.data.model.ReceiptScan
 import online.aireport.split.data.model.SplitModeDto
+import online.aireport.split.ui.TestTeam
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ExpenseDraftTest {
-    private val today = LocalDate.of(2026, 11, 9)
-    private val memberIds = listOf("anna", "bas", "cas")
-    private val group = GroupDetail(
-        id = "g1",
-        name = "Huis",
-        color = GroupColor.AMBER,
-        inviteCode = "ABCD2345",
-        myMemberId = "bas",
-        members = memberIds.map { Member(it, it.replaceFirstChar(Char::uppercase)) },
-        balances = emptyList(),
-        transfers = emptyList(),
-        totalSpentCents = 0,
-    )
+    private val today = TestTeam.today
+    private val group = TestTeam.group
+    private val pot = TestTeam.POT
+
+    /** The team's member order: the players, then the pot. */
+    private val memberIds = TestTeam.memberIds
     private val fresh = newExpenseDraft(group, today)
 
     @Test
@@ -45,7 +39,48 @@ class ExpenseDraftTest {
         val preview = fresh.copy(amountText = "10").preview(memberIds) as SplitPreview.Valid
 
         assertEquals(listOf(Share("anna", 334), Share("bas", 333), Share("cas", 333)), preview.shares)
-        assertEquals(Split.Equal(memberIds), preview.split)
+        assertEquals(Split.Equal(TestTeam.playerIds), preview.split)
+    }
+
+    @Test
+    fun `the Teamkas is in the lists but starts out of every split`() {
+        assertFalse(pot in fresh.equalMemberIds)
+        assertNull(fresh.weights[pot])
+        assertFalse(fresh.isChargedToPot(pot))
+
+        val shares = (fresh.copy(amountText = "9", mode = SplitMode.SHARES).preview(memberIds) as SplitPreview.Valid).shares
+        assertEquals(TestTeam.playerIds, shares.map { it.memberId })
+    }
+
+    @Test
+    fun `ticking only the Teamkas puts an expense at the pot's cost`() {
+        val draft = TestTeam.playerIds
+            .fold(fresh.copy(amountText = "30"), ExpenseDraft::toggleEqualMember)
+            .toggleEqualMember(pot)
+
+        assertTrue(draft.isChargedToPot(pot))
+        assertEquals(listOf(Share(pot, 3000)), (draft.preview(memberIds) as SplitPreview.Valid).shares)
+        assertFalse(draft.toggleEqualMember("anna").isChargedToPot(pot))
+    }
+
+    @Test
+    fun `the Teamkas can chip in like anybody else, and comes last`() {
+        val draft = fresh.copy(amountText = "10").toggleEqualMember(pot)
+        assertEquals(
+            listOf(Share("anna", 250), Share("bas", 250), Share("cas", 250), Share(pot, 250)),
+            (draft.preview(memberIds) as SplitPreview.Valid).shares,
+        )
+    }
+
+    @Test
+    fun `a ride fills in the amount and, when it is empty, the description`() {
+        val ride = fresh.withTrip(costCents = 1932, description = "Rit (84 km)")
+        assertEquals("19,32", ride.amountText)
+        assertEquals("Rit (84 km)", ride.description)
+
+        val named = fresh.copy(description = "Naar HC Westerkwartier").withTrip(1932, "Rit (84 km)")
+        assertEquals("19,32", named.amountText)
+        assertEquals("Naar HC Westerkwartier", named.description)
     }
 
     @Test
@@ -56,14 +91,14 @@ class ExpenseDraftTest {
 
     @Test
     fun `equal - unticking everyone leaves no participants`() {
-        val draft = memberIds.fold(fresh.copy(amountText = "10")) { draft, id -> draft.toggleEqualMember(id) }
+        val draft = TestTeam.playerIds.fold(fresh.copy(amountText = "10")) { draft, id -> draft.toggleEqualMember(id) }
         assertEquals(SplitPreview.Invalid(SplitErrorCode.NO_PARTICIPANTS), draft.preview(memberIds))
     }
 
     @Test
     fun `equal - the split follows the group's member order, not the order of ticking`() {
         val draft = fresh.copy(amountText = "10").toggleEqualMember("anna").toggleEqualMember("anna")
-        assertEquals(Split.Equal(memberIds), (draft.preview(memberIds) as SplitPreview.Valid).split)
+        assertEquals(Split.Equal(TestTeam.playerIds), (draft.preview(memberIds) as SplitPreview.Valid).split)
     }
 
     @Test
@@ -97,6 +132,7 @@ class ExpenseDraftTest {
             .changeWeight("cas", -1)
             .changeWeight("cas", -1)
         assertEquals(mapOf("anna" to 2, "bas" to 1, "cas" to 0), draft.weights)
+        assertEquals(Weight(pot, 0), (draft.preview(memberIds) as SplitPreview.Valid).split.let { it as Split.Shares }.weights.last())
         assertEquals(
             listOf(Share("anna", 600), Share("bas", 300)),
             (draft.preview(memberIds) as SplitPreview.Valid).shares,
@@ -136,12 +172,12 @@ class ExpenseDraftTest {
 
     @Test
     fun `items - a line needs an amount and someone to pay for it`() {
-        val withoutAmount = fresh.copy(mode = SplitMode.ITEMS, amountText = "10").addItem(memberIds)
+        val withoutAmount = fresh.copy(mode = SplitMode.ITEMS, amountText = "10").addItem(TestTeam.playerIds)
         assertEquals(SplitPreview.Invalid(SplitErrorCode.INVALID_ITEM), withoutAmount.preview(memberIds))
 
         val unassigned = withoutAmount
             .updateItem(1) { it.copy(amountText = "10") }
-            .let { draft -> memberIds.fold(draft) { d, id -> d.toggleItemMember(1, id) } }
+            .let { draft -> TestTeam.playerIds.fold(draft) { d, id -> d.toggleItemMember(1, id) } }
         assertEquals(SplitPreview.Invalid(SplitErrorCode.ITEM_UNASSIGNED), unassigned.preview(memberIds))
     }
 
@@ -205,7 +241,7 @@ class ExpenseDraftTest {
             items = listOf(ReceiptLine("Bier", 900), ReceiptLine("Korting", -150), ReceiptLine("Burger", 1600)),
         )
 
-        val draft = fresh.withReceipt(scan, memberIds)
+        val draft = fresh.withReceipt(scan, TestTeam.playerIds)
 
         assertEquals(SplitMode.ITEMS, draft.mode)
         assertEquals("Café De Zon", draft.description)
@@ -214,7 +250,7 @@ class ExpenseDraftTest {
         // The discount line cannot be a line of the split; it shows up as the difference.
         assertEquals(listOf("Bier", "Burger"), draft.items.map { it.name })
         assertEquals(-150L, draft.itemsDifferenceCents)
-        assertEquals(memberIds.toSet(), draft.items.first().memberIds)
+        assertEquals(TestTeam.playerIds.toSet(), draft.items.first().memberIds)
     }
 
     @Test

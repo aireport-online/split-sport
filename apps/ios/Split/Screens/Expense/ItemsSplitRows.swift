@@ -59,13 +59,8 @@ struct ItemsSplitRows: View {
     private func chips(for item: ExpenseEditorViewModel.ItemDraft) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
-                ForEach(model.members.indices, id: \.self) { index in
-                    let member = model.members[index]
-                    PersonChip(
-                        name: member.name,
-                        color: GroupColor.palette(at: index),
-                        isSelected: item.memberIds.contains(member.id)
-                    ) {
+                ForEach(model.members) { member in
+                    PartyChip(party: member, isSelected: item.memberIds.contains(member.id)) {
                         model.toggleMember(member.id, inItem: item.id)
                     }
                 }

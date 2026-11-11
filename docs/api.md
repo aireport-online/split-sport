@@ -1,6 +1,7 @@
-# Split API
+# Split Sport API
 
-One REST API serves the web app, the Android app and the iOS app. The source of truth is
+Split Sport is Split for sports clubs: a group is a team with a pot (teamkas), a treasurer,
+contributions and a fine list. One REST API serves the web app, the Android app and the iOS app. The source of truth is
 `apps/api/src/app.ts` (routes), `apps/api/src/schemas.ts` (input validation) and
 `packages/core/src/api-types.ts` (JSON shapes).
 
@@ -17,15 +18,23 @@ One REST API serves the web app, the Android app and the iOS app. The source of 
 
 ```ts
 User         { id, name, email, iban: string | null }
-Member       { id, name, userId: string | null, iban: string | null }   // userId null = added by name, no account
-GroupSummary { id, name, color, currency, memberCount, myMemberId, myBalanceCents, lastActivityAt }
-GroupDetail  { id, name, color, currency, inviteCode, myMemberId,
-               members: Member[],
-               balances:  { memberId, balanceCents }[],                  // > 0: gets money back, < 0: owes
-               transfers: { fromMemberId, toMemberId, amountCents }[],   // suggested payments that settle everything
-               totalSpentCents }
-Expense      { id, groupId, kind: "expense" | "settlement", description, amountCents,
-               paidById,                       // member id; for a settlement: who paid back
+Member       { id, name, kind: "player" | "pot",                         // "pot" = the team pot, one per team
+               userId: string | null, iban: string | null }              // userId null = added by name, no account
+GroupSummary { id, name, color, sport, club: string | null, season: string | null, currency,
+               memberCount,                                              // team members, the pot not counted (also in an invite)
+               myMemberId, myBalanceCents, lastActivityAt }
+GroupDetail  { id, name, color, sport, club, season, currency, inviteCode, myMemberId,
+               potMemberId,                                              // the pot; also the last entry of members
+               treasurerMemberId: string | null,                         // keeps the pot's money; pay to their IBAN
+               members: Member[],                                        // team members in join order, then the pot
+               balances:  { memberId, balanceCents, potCents, peerCents }[],
+               transfers: { fromMemberId, toMemberId, amountCents }[],   // first with the pot, then among members
+               pot: { cashCents, toReceiveCents, toPayCents },
+               fines: { id, name, amountCents }[],                       // the fine list (boetelijst)
+               fineStats: { memberId, count, totalCents }[],             // most fines first; members without are left out
+               totalSpentCents }                                         // expenses only, no charges or payments
+Expense      { id, groupId, kind: "expense" | "settlement" | "fine" | "contribution", description, amountCents,
+               paidById,                       // member id; settlement: who paid; fine/contribution: always the pot
                date, splitMode: "equal" | "exact" | "shares" | "items",
                shares: { memberId, amountCents, weight: number | null }[],   // settlement: one share, the receiver
                items:  { name, amountCents, memberIds: string[] }[],        // only for splitMode "items"
@@ -33,7 +42,35 @@ Expense      { id, groupId, kind: "expense" | "settlement", description, amountC
 ```
 
 `color` is one of `amber`, `rose`, `green`, `coral`, `blue`, `lime`, `teal`, `slate`: the eight
-highlighters of the house style (see `docs/design.md`).
+highlighters of the house style (see `docs/design.md`). A member's highlighter is their index in
+`members`; the pot is last and has none.
+
+`sport` is one of `voetbal`, `hockey`, `korfbal`, `volleybal`, `handbal`, `basketbal`, `tennis`,
+`padel`, `rugby`, `waterpolo`, `overig`.
+
+### Balances and the pot
+
+`balanceCents` is a member's total (> 0: gets money back). It is the sum of two sides:
+
+- `potCents`: what they have with the pot. `< 0`: they still owe the pot (unpaid contributions and
+  fines); `> 0`: the pot owes them (they advanced something for the team). For the pot's own entry
+  it is the pot's total: `> 0` when members still owe it.
+- `peerCents`: what they have with other members, from ordinary shared expenses.
+
+`pot.cashCents` is the kasstand: payments into the pot, minus payments out of it and expenses the
+pot paid. Fines and contributions are claims and only become cash when someone pays the pot.
+`pot.toReceiveCents` and `pot.toPayCents` add up what members owe the pot and what it owes them.
+
+How the pot appears in entries:
+
+| What happened | Recorded as |
+| --- | --- |
+| Everyone is asked for € 25 | `POST /charges` with `type: "contribution"`: paid by the pot, a share of 2500 per member |
+| Bas gets a fine of € 2 | `POST /charges` with `type: "fine"`: paid by the pot, one share of 200 for Bas |
+| Bas pays the pot € 27 | `POST /settlements` from Bas to the pot |
+| The pot pays the referee € 30 | `POST /expenses` with `paidById` the pot and a split over the pot alone |
+| Chris bought balls for the team | `POST /expenses` paid by Chris with a split over the pot alone; the pot now owes Chris |
+| The pot pays Chris back | `POST /settlements` from the pot to Chris |
 
 A split is sent as one of:
 
@@ -64,25 +101,31 @@ To edit an expense, rebuild the split from the stored expense:
 | PATCH | `/me` | `{ name?, iban? }` (`iban: ""` or `null` clears it) | `User` |
 | DELETE | `/me` | – | 204, deletes the account |
 | GET | `/groups` | – | `{ groups: GroupSummary[] }`, most recent activity first |
-| POST | `/groups` | `{ name, color?, currency? }` | 201 `GroupDetail` |
+| POST | `/groups` | `{ name, color?, sport?, club?, season?, currency? }` | 201 `GroupDetail`; creates the pot, makes the caller treasurer and adds a default fine list |
 | GET | `/groups/:id` | – | `GroupDetail` |
-| PATCH | `/groups/:id` | `{ name?, color? }` | `GroupDetail` |
+| PATCH | `/groups/:id` | `{ name?, color?, sport?, club?, season?, treasurerMemberId? }` (`club`/`season`: `""` or `null` clears) | `GroupDetail` |
+| POST | `/groups/:id/fines` | `{ name, amountCents }` | 201 `GroupDetail` (adds a line to the fine list) |
+| PUT | `/groups/:id/fines/:fineId` | `{ name, amountCents }` | `GroupDetail` |
+| DELETE | `/groups/:id/fines/:fineId` | – | `GroupDetail` |
 | POST | `/groups/:id/leave` | – | 204 |
 | POST | `/groups/:id/members` | `{ name }` | 201 `GroupDetail` (adds a member without account) |
 | PATCH | `/groups/:id/members/:memberId` | `{ name }` | `GroupDetail` (only members without account) |
 | DELETE | `/groups/:id/members/:memberId` | – | `GroupDetail`; 409 `member_in_use` when they are in expenses |
-| GET | `/invites/:code` | – | `{ groupId, name, color, memberCount, alreadyMember, unclaimedMembers: {id, name}[] }` |
+| GET | `/invites/:code` | – | `{ groupId, name, color, sport, club, memberCount, alreadyMember, unclaimedMembers: {id, name}[] }` |
 | POST | `/invites/:code/join` | `{ memberId? }` | `GroupDetail`; with `memberId` the caller becomes that existing member |
 | GET | `/groups/:id/expenses` | – | `{ expenses: Expense[] }`, newest date first, settlements included |
 | POST | `/groups/:id/expenses` | `{ description, amountCents, date, paidById, split }` | 201 `Expense` |
 | GET | `/groups/:id/expenses/:expenseId` | – | `Expense` |
 | PUT | `/groups/:id/expenses/:expenseId` | same as POST | `Expense` |
 | DELETE | `/groups/:id/expenses/:expenseId` | – | 204 (also deletes a settlement) |
+| POST | `/groups/:id/charges` | `{ type: "fine" \| "contribution", description, amountCents, memberIds, date? }` (`amountCents` is per member; the total may not exceed € 999.999,99) | 201 `Expense` with that `kind`, paid by the pot |
 | POST | `/groups/:id/settlements` | `{ fromMemberId, toMemberId, amountCents, date? }` | 201 `Expense` with `kind: "settlement"` |
 | POST | `/receipts/scan` | `{ imageBase64, mediaType }` | `{ merchant, date, totalCents, items: {name, amountCents}[] }` |
 
-A payment (`kind: "settlement"`) cannot be edited: `PUT` only accepts expenses. Delete it and record
-it again.
+Payments, fines and contributions cannot be edited: `PUT` only accepts `kind: "expense"` and answers
+404 for the others. Delete them (`DELETE /groups/:id/expenses/:expenseId`) and record them again.
+The pot cannot be renamed or removed (403), claimed with an invite (409) or charged (400). The
+treasurer can be any team member, also one without an account; the clients then have no IBAN to show.
 
 Every endpoint except `/config`, `/auth/register` and `/auth/login` needs a token, the invite
 endpoints included.
@@ -93,7 +136,7 @@ image. Clients scale photos down to 1600 px on the long side and send JPEG. `mer
 Anthropic API key; check `GET /config` and hide the scan button in that case.
 
 Invite codes are 8 characters (`A–Z`, `2–9`), case-insensitive. The share link is
-`<server>/join/<code>`; the mobile apps also open `split://join/<code>`.
+`<server>/join/<code>`; the mobile apps also open `splitsport://join/<code>` (their own scheme, so Split and Split Sport can be installed side by side).
 
 ## Error codes
 

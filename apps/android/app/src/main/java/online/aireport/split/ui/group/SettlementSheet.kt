@@ -34,7 +34,7 @@ import online.aireport.split.ui.components.PaperDialog
 import online.aireport.split.ui.components.PrimaryButton
 import online.aireport.split.ui.theme.SplitTheme
 
-/** The payment sheet: van, aan, bedrag, datum. Saved as a settlement. */
+/** The payment sheet: van, aan (team members or the Teamkas), bedrag, datum. Saved as a settlement. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettlementSheet(
@@ -115,18 +115,21 @@ fun SettlementSheet(
     }
 }
 
-/** A recorded payment between members. It cannot be edited, only removed. */
+/**
+ * A payment, a fine or a contribution that was recorded. These cannot be edited, only removed
+ * (and recorded again).
+ */
 @Composable
-fun SettlementDialog(settlement: Expense, group: GroupDetail, onDelete: () -> Unit, onDismiss: () -> Unit) {
-    val date = parseIsoDate(settlement.date)?.let { formatShortDate(it) } ?: settlement.date
+fun EntryDialog(entry: Expense, group: GroupDetail, onDelete: () -> Unit, onDismiss: () -> Unit) {
+    val date = parseIsoDate(entry.date)?.let { formatShortDate(it) } ?: entry.date
     PaperDialog(
-        title = expenseTitle(settlement, group),
+        title = entryTitle(entry, group),
         confirmLabel = stringResource(R.string.action_delete),
         onConfirm = onDelete,
         onDismiss = onDismiss,
         destructive = true,
         dismissLabel = stringResource(R.string.action_close),
     ) {
-        Text(stringResource(R.string.settlement_details, formatCents(settlement.amountCents), date))
+        Text(stringResource(R.string.entry_details, formatCents(entry.amountCents), date))
     }
 }

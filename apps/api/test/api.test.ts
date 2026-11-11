@@ -54,7 +54,10 @@ async function register(name: string): Promise<AuthResponse> {
 }
 
 async function createGroup(token: string, name = "Weekendje Texel"): Promise<GroupDetail> {
-  const { status, data } = await call<GroupDetail>("POST", "/groups", { token, body: { name, color: "teal" } });
+  const { status, data } = await call<GroupDetail>("POST", "/groups", {
+    token,
+    body: { name, color: "teal", sport: "voetbal", club: "VV De Meern", season: "2026/27" },
+  });
   expect(status).toBe(201);
   return data;
 }
@@ -118,12 +121,27 @@ describe("groups and members", () => {
   it("creates a group with the creator as first member", async () => {
     const anna = await register("Anna");
     const group = await createGroup(anna.token);
-    expect(group).toMatchObject({ name: "Weekendje Texel", color: "teal", currency: "EUR", totalSpentCents: 0 });
+    expect(group).toMatchObject({
+      name: "Weekendje Texel",
+      color: "teal",
+      sport: "voetbal",
+      club: "VV De Meern",
+      season: "2026/27",
+      currency: "EUR",
+      totalSpentCents: 0,
+      treasurerMemberId: group.myMemberId,
+      pot: { cashCents: 0, toReceiveCents: 0, toPayCents: 0 },
+      fineStats: [],
+    });
     expect(group.inviteCode).toMatch(/^[A-Z2-9]{8}$/);
-    expect(group.members).toEqual([{ id: group.myMemberId, name: "Anna", userId: anna.user.id, iban: null }]);
+    expect(group.members).toEqual([
+      { id: group.myMemberId, name: "Anna", kind: "player", userId: anna.user.id, iban: null },
+      { id: group.potMemberId, name: "Teamkas", kind: "pot", userId: null, iban: null },
+    ]);
+    expect(group.fines.map((f) => [f.name, f.amountCents])).toContainEqual(["Gele kaart", 500]);
 
     const list = await call<{ groups: GroupSummary[] }>("GET", "/groups", { token: anna.token });
-    expect(list.data.groups).toMatchObject([{ id: group.id, memberCount: 1, myBalanceCents: 0 }]);
+    expect(list.data.groups).toMatchObject([{ id: group.id, sport: "voetbal", memberCount: 1, myBalanceCents: 0 }]);
   });
 
   it("hides groups from people who are not in them", async () => {
@@ -152,7 +170,7 @@ describe("groups and members", () => {
     expect(own.status).toBe(403);
 
     const removed = await call<GroupDetail>("DELETE", `/groups/${group.id}/members/${opa.id}`, { token: anna.token });
-    expect(removed.data.members).toHaveLength(1);
+    expect(removed.data.members.map((m) => m.name)).toEqual(["Anna", "Teamkas"]);
   });
 
   it("lets someone join by invite code, as a new member or as an existing name", async () => {
@@ -185,10 +203,10 @@ describe("groups and members", () => {
     expect(taken.status).toBe(409);
 
     const joined = await call<GroupDetail>("POST", `/invites/${group.inviteCode}/join`, { token: chris.token, body: {} });
-    expect(joined.data.members.map((m) => m.name)).toEqual(["Anna", "Bas", "Chris"]);
+    expect(joined.data.members.map((m) => m.name)).toEqual(["Anna", "Bas", "Chris", "Teamkas"]);
 
     const again = await call<GroupDetail>("POST", `/invites/${group.inviteCode}/join`, { token: chris.token, body: {} });
-    expect(again.data.members).toHaveLength(3);
+    expect(again.data.members).toHaveLength(4);
 
     expect((await call("GET", "/invites/BESTAATNIET", { token: bas.token })).status).toBe(404);
   });
@@ -372,6 +390,7 @@ describe("expenses, balances and settling up", () => {
       ["Anna", anna.user.id],
       ["Bas", null],
       ["Dewi", null],
+      ["Teamkas", null],
     ]);
     expect(balanceOf(group, b)).toBe(-2500);
     expect(group.members.some((m) => m.id === c)).toBe(false);
@@ -394,6 +413,159 @@ describe("expenses, balances and settling up", () => {
     await call("DELETE", "/me", { token: chris.token });
     const dana = await register("Dana");
     expect((await call("GET", `/invites/${group.inviteCode}`, { token: dana.token })).status).toBe(404);
+  });
+});
+
+describe("the team pot", () => {
+  async function team() {
+    const anna = await register("Anna");
+    const bas = await register("Bas");
+    const chris = await register("Chris");
+    const group = await createGroup(anna.token, "Heren 3");
+    await call("POST", `/invites/${group.inviteCode}/join`, { token: bas.token, body: {} });
+    const detail = (await call<GroupDetail>("POST", `/invites/${group.inviteCode}/join`, { token: chris.token, body: {} })).data;
+    const [a, b, c] = detail.members.map((m) => m.id) as [string, string, string];
+    const get = async () => (await call<GroupDetail>("GET", `/groups/${group.id}`, { token: anna.token })).data;
+    return { anna, bas, chris, groupId: group.id, pot: detail.potMemberId, a, b, c, get };
+  }
+
+  it("charges a contribution and a fine, and only counts paid money as cash", async () => {
+    const { anna, bas, groupId, pot, a, b, c, get } = await team();
+
+    const contribution = await call<Expense>("POST", `/groups/${groupId}/charges`, {
+      token: anna.token,
+      body: { type: "contribution", description: "Inleg november", amountCents: 1000, memberIds: [a, b, c], date: "2026-11-01" },
+    });
+    expect(contribution.status).toBe(201);
+    expect(contribution.data).toMatchObject({ kind: "contribution", amountCents: 3000, paidById: pot, splitMode: "exact" });
+    expect(contribution.data.shares.map((s) => [s.memberId, s.amountCents])).toEqual([[a, 1000], [b, 1000], [c, 1000]]);
+
+    const fine = await call<Expense>("POST", `/groups/${groupId}/charges`, {
+      token: bas.token,
+      body: { type: "fine", description: "Te laat", amountCents: 200, memberIds: [b] },
+    });
+    expect(fine.data).toMatchObject({ kind: "fine", amountCents: 200, paidById: pot });
+
+    let group = await get();
+    expect(group.pot).toEqual({ cashCents: 0, toReceiveCents: 3200, toPayCents: 0 });
+    expect(group.balances.find((x) => x.memberId === b)).toEqual({ memberId: b, balanceCents: -1200, potCents: -1200, peerCents: 0 });
+    expect(group.balances.find((x) => x.memberId === pot)).toMatchObject({ balanceCents: 3200, potCents: 3200 });
+    expect(group.fineStats).toEqual([{ memberId: b, count: 1, totalCents: 200 }]);
+    expect(group.totalSpentCents).toBe(0);
+    expect(group.transfers).toEqual([
+      { fromMemberId: a, toMemberId: pot, amountCents: 1000 },
+      { fromMemberId: b, toMemberId: pot, amountCents: 1200 },
+      { fromMemberId: c, toMemberId: pot, amountCents: 1000 },
+    ]);
+
+    // Bas pays the pot what he owes.
+    await call("POST", `/groups/${groupId}/settlements`, { token: bas.token, body: { fromMemberId: b, toMemberId: pot, amountCents: 1200 } });
+    group = await get();
+    expect(group.pot).toEqual({ cashCents: 1200, toReceiveCents: 2000, toPayCents: 0 });
+
+    const list = await call<{ groups: GroupSummary[] }>("GET", "/groups", { token: bas.token });
+    expect(list.data.groups[0]).toMatchObject({ memberCount: 3, myBalanceCents: 0 });
+  });
+
+  it("pays for the team from the pot and pays back members who advanced something", async () => {
+    const { anna, groupId, pot, a, b, c, get } = await team();
+    await call("POST", `/groups/${groupId}/settlements`, { token: anna.token, body: { fromMemberId: a, toMemberId: pot, amountCents: 5000 } });
+
+    // The pot pays the referee: nobody is charged.
+    await call("POST", `/groups/${groupId}/expenses`, {
+      token: anna.token,
+      body: { description: "Scheidsrechter", amountCents: 1500, date: "2026-11-02", paidById: pot, split: { mode: "equal", memberIds: [pot] } },
+    });
+    // Chris bought balls for the team; the pot owes him.
+    await call("POST", `/groups/${groupId}/expenses`, {
+      token: anna.token,
+      body: { description: "Wedstrijdballen", amountCents: 4000, date: "2026-11-03", paidById: c, split: { mode: "equal", memberIds: [pot] } },
+    });
+    // Bas paid the drinks, shared by the three players.
+    await call("POST", `/groups/${groupId}/expenses`, {
+      token: anna.token,
+      body: { description: "Derde helft", amountCents: 3000, date: "2026-11-03", paidById: b, split: { mode: "equal", memberIds: [a, b, c] } },
+    });
+
+    const group = await get();
+    // Anna put 50,00 in without owing it, so the pot owes her that too.
+    expect(group.pot).toEqual({ cashCents: 3500, toReceiveCents: 0, toPayCents: 9000 });
+    expect(group.balances.map((x) => [x.potCents, x.peerCents])).toEqual([
+      [5000, -1000],
+      [0, 2000],
+      [4000, -1000],
+      [-9000, 0],
+    ]);
+    expect(group.transfers).toEqual([
+      { fromMemberId: pot, toMemberId: a, amountCents: 5000 },
+      { fromMemberId: pot, toMemberId: c, amountCents: 4000 },
+      { fromMemberId: a, toMemberId: b, amountCents: 1000 },
+      { fromMemberId: c, toMemberId: b, amountCents: 1000 },
+    ]);
+    expect(group.totalSpentCents).toBe(8500);
+  });
+
+  it("keeps the pot out of reach: it cannot be charged, claimed, renamed or removed", async () => {
+    const { anna, groupId, pot, a } = await team();
+    const charge = (body: unknown) => call<{ error: { code: string } }>("POST", `/groups/${groupId}/charges`, { token: anna.token, body });
+
+    expect((await charge({ type: "fine", description: "x", amountCents: 100, memberIds: [pot] })).status).toBe(400);
+    expect((await charge({ type: "fine", description: "x", amountCents: 100, memberIds: [] })).status).toBe(400);
+    expect((await charge({ type: "fine", description: "x", amountCents: 0, memberIds: [a] })).status).toBe(400);
+    expect((await charge({ type: "boete", description: "x", amountCents: 100, memberIds: [a] })).status).toBe(400);
+    expect((await charge({ type: "fine", description: "x", amountCents: 100, memberIds: [a, a] })).data.error.code).toBe("duplicate_member");
+
+    expect((await call("PATCH", `/groups/${groupId}/members/${pot}`, { token: anna.token, body: { name: "Pot" } })).status).toBe(403);
+    expect((await call("DELETE", `/groups/${groupId}/members/${pot}`, { token: anna.token })).status).toBe(403);
+
+    const dana = await register("Dana");
+    const group = (await call<GroupDetail>("GET", `/groups/${groupId}`, { token: anna.token })).data;
+    const preview = await call<InvitePreview>("GET", `/invites/${group.inviteCode}`, { token: dana.token });
+    expect(preview.data).toMatchObject({ sport: "voetbal", club: "VV De Meern", memberCount: 3, unclaimedMembers: [] });
+    expect((await call("POST", `/invites/${group.inviteCode}/join`, { token: dana.token, body: { memberId: pot } })).status).toBe(409);
+  });
+
+  it("a fine or contribution cannot be edited, only removed", async () => {
+    const { anna, groupId, a, get } = await team();
+    const fine = await call<Expense>("POST", `/groups/${groupId}/charges`, {
+      token: anna.token,
+      body: { type: "fine", description: "Gele kaart", amountCents: 500, memberIds: [a] },
+    });
+    const edit = await call("PUT", `/groups/${groupId}/expenses/${fine.data.id}`, {
+      token: anna.token,
+      body: { description: "Gele kaart", amountCents: 100, date: "2026-11-02", paidById: a, split: { mode: "equal", memberIds: [a] } },
+    });
+    expect(edit.status).toBe(404);
+    expect((await call("DELETE", `/groups/${groupId}/expenses/${fine.data.id}`, { token: anna.token })).status).toBe(204);
+    expect((await get()).fineStats).toEqual([]);
+  });
+
+  it("edits the fine list and the team details, and hands over the pot", async () => {
+    const { anna, bas, groupId, pot, a, b, get } = await team();
+
+    const added = await call<GroupDetail>("POST", `/groups/${groupId}/fines`, { token: anna.token, body: { name: "Eigen goal", amountCents: 250 } });
+    expect(added.status).toBe(201);
+    const own = added.data.fines.at(-1)!;
+    expect(own).toMatchObject({ name: "Eigen goal", amountCents: 250 });
+
+    const changed = await call<GroupDetail>("PUT", `/groups/${groupId}/fines/${own.id}`, { token: bas.token, body: { name: "Eigen doelpunt", amountCents: 300 } });
+    expect(changed.data.fines.at(-1)).toEqual({ id: own.id, name: "Eigen doelpunt", amountCents: 300 });
+    const removed = await call<GroupDetail>("DELETE", `/groups/${groupId}/fines/${own.id}`, { token: anna.token });
+    expect(removed.data.fines.some((f) => f.id === own.id)).toBe(false);
+    expect((await call("DELETE", `/groups/${groupId}/fines/${own.id}`, { token: anna.token })).status).toBe(404);
+    expect((await call("POST", `/groups/${groupId}/fines`, { token: anna.token, body: { name: "Gratis", amountCents: 0 } })).status).toBe(400);
+
+    const patched = await call<GroupDetail>("PATCH", `/groups/${groupId}`, {
+      token: anna.token,
+      body: { sport: "hockey", club: "", season: "2027/28", treasurerMemberId: b },
+    });
+    expect(patched.data).toMatchObject({ sport: "hockey", club: null, season: "2027/28", treasurerMemberId: b });
+    expect((await call("PATCH", `/groups/${groupId}`, { token: anna.token, body: { treasurerMemberId: pot } })).status).toBe(400);
+    expect((await call("PATCH", `/groups/${groupId}`, { token: anna.token, body: { sport: "schaken" } })).status).toBe(400);
+
+    // When the treasurer leaves, the longest-standing member takes over the pot.
+    await call("POST", `/groups/${groupId}/leave`, { token: bas.token });
+    expect((await get()).treasurerMemberId).toBe(a);
   });
 });
 

@@ -76,7 +76,7 @@ fun ItemsSplitEditor(
         ) {
             SecondaryButton(
                 text = stringResource(R.string.split_items_add),
-                onClick = { onDraftChange(draft.addItem(group.members.map { it.id })) },
+                onClick = { onDraftChange(draft.addItem(group.players.map { it.id })) },
                 enabled = enabled,
                 small = true,
             )
@@ -142,10 +142,12 @@ private fun ItemEditor(
                 enabled = enabled,
             )
         }
+        // A person has their highlighter; the pot, which is not a person, has ink.
+        val strokes = group.members.mapIndexed { position, member ->
+            if (member.isPot) colors.ink else colors.memberHighlighter(position)
+        }
         ItemSwipe(
-            highlighters = group.members.indices
-                .filter { group.members[it].id in item.memberIds }
-                .map(colors::memberHighlighter),
+            highlighters = group.members.indices.filter { group.members[it].id in item.memberIds }.map(strokes::get),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 6.dp, end = 54.dp),
@@ -156,7 +158,7 @@ private fun ItemEditor(
                     name = member.name,
                     selected = member.id in item.memberIds,
                     onSelectedChange = { onDraftChange(draft.toggleItemMember(item.key, member.id)) },
-                    highlighter = colors.memberHighlighter(position),
+                    highlighter = strokes[position].takeUnless { member.isPot },
                     enabled = enabled,
                 )
             }

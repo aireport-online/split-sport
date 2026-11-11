@@ -12,11 +12,16 @@ struct PaperButtonStyle: ButtonStyle {
     }
 
     var kind = Kind.secondary
-    /// A small button inside a receipt that hugs its label; otherwise 48 pt high and as wide as it can be.
+    /// A small button (36 pt high, smaller label); otherwise 48 pt high.
     var isCompact = false
+    /// Whether the button is as wide as it can be. A compact button hugs its label unless told otherwise.
+    var fillsWidth: Bool?
 
     func makeBody(configuration: Configuration) -> some View {
-        PaperButtonBody(kind: kind, isCompact: isCompact, label: configuration.label, isPressed: configuration.isPressed)
+        PaperButtonBody(
+            kind: kind, isCompact: isCompact, fillsWidth: fillsWidth ?? !isCompact,
+            label: configuration.label, isPressed: configuration.isPressed
+        )
     }
 }
 
@@ -26,6 +31,7 @@ struct PaperButtonStyle: ButtonStyle {
 private struct PaperButtonBody: View {
     let kind: PaperButtonStyle.Kind
     let isCompact: Bool
+    let fillsWidth: Bool
     let label: ButtonStyleConfiguration.Label
     let isPressed: Bool
     @Environment(\.isEnabled) private var isEnabled
@@ -56,9 +62,8 @@ private struct PaperButtonBody: View {
         isCompact ? 12 : 18
     }
 
-    /// A compact button hugs its label; the others are as wide as they can be.
     private var maxWidth: CGFloat? {
-        isCompact ? nil : .infinity
+        fillsWidth ? .infinity : nil
     }
 
     private var minHeight: CGFloat {

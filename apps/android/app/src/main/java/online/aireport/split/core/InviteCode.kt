@@ -13,12 +13,12 @@ object InviteCode {
     fun isValid(code: String): Boolean = VALID.matches(code)
 
     /**
-     * Finds the code in a share link (`https://server/join/CODE` or `split://join/CODE`) or in a
+     * Finds the code in a share link (`https://server/join/CODE` or `splitsport://join/CODE`) or in a
      * bare code. Returns null when there is none.
      */
     fun fromLink(link: String): String? {
         val trimmed = link.trim()
-        // `split://join/CODE` parses "join" as the host, so match on the text rather than a path.
+        // `splitsport://join/CODE` parses "join" as the host, so match on the text rather than a path.
         val fromPath = JOIN_PATH.find(trimmed.substringBefore('?').substringBefore('#'))
             ?.groupValues?.get(1)?.uppercase()
         return fromPath ?: trimmed.uppercase().takeIf(::isValid)

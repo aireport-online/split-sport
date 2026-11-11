@@ -107,7 +107,8 @@ class GroupViewModel(
         }
     }
 
-    fun deleteSettlement(expenseId: String) {
+    /** Removes a payment, a fine or a contribution. */
+    fun deleteEntry(expenseId: String) {
         viewModelScope.launch {
             try {
                 expenseRepository.deleteExpense(groupId, expenseId)

@@ -25,13 +25,12 @@ public final class ExpenseEditorViewModel {
         }
     }
 
-    /// What one member pays, for the "Per persoon" summary.
+    /// What one member (or the pot) pays, for the "Per persoon" summary.
     public struct PersonShare: Identifiable, Equatable, Sendable {
-        public let id: String
-        public let name: String
-        public let color: GroupColor
+        public let party: Party
         public let amountCents: Int
 
+        public var id: String { party.id }
         /// The amount as a till prints it, without the euro sign.
         public var amount: String { Money.plain(amountCents) }
     }
@@ -44,8 +43,8 @@ public final class ExpenseEditorViewModel {
 
     // MARK: Form state
 
-    public let members: [Member]
-    public let myMemberId: String
+    /// The team members in team order, followed by the Teamkas.
+    public let members: [Party]
     /// Whether "Bon scannen" is offered (the server supports it).
     public let canScanReceipt: Bool
     public var description: String
@@ -62,6 +61,10 @@ public final class ExpenseEditorViewModel {
     /// "Per regel": the lines of the receipt.
     public var items: [ItemDraft]
 
+    /// "Rit berekenen": the kilometres and the rate per kilometre, as typed.
+    public var tripKilometersText = ""
+    public var tripRateText = TripCalculation.defaultRateText
+
     public private(set) var isSaving = false
     public private(set) var isScanning = false
     public var errorMessage: String?
@@ -69,6 +72,8 @@ public final class ExpenseEditorViewModel {
     @ObservationIgnored private let api: SplitAPI
     @ObservationIgnored private let groupId: String
     @ObservationIgnored private let expenseId: String?
+    /// The people of the team: who a new split or receipt line starts with. The pot only takes part when asked.
+    @ObservationIgnored private let playerIds: Set<String>
 
     /// - Parameter expense: the expense to edit, or nil for a new one.
     public init(
@@ -81,19 +86,19 @@ public final class ExpenseEditorViewModel {
         self.api = api
         self.groupId = group.id
         self.expenseId = expense?.id
-        self.members = group.members
-        self.myMemberId = group.myMemberId
+        self.members = group.parties
+        self.playerIds = Set(group.players.map(\.id))
         self.canScanReceipt = canScanReceipt
 
-        let everyone = Set(group.members.map(\.id))
         description = expense?.description ?? ""
         amountText = expense.map { Money.editingText($0.amountCents) } ?? ""
         date = expense?.date ?? today
         paidById = expense?.paidById ?? group.myMemberId
         mode = expense?.splitMode ?? .equal
-        equalMemberIds = everyone
+        // The Teamkas is in the lists too, but unticked: ticking only the pot means "ten laste van de teamkas".
+        equalMemberIds = playerIds
         exactTexts = [:]
-        weights = Dictionary(uniqueKeysWithValues: group.members.map { ($0.id, 1) })
+        weights = Dictionary(uniqueKeysWithValues: group.members.map { ($0.id, $0.isPot ? 0 : 1) })
         items = []
 
         // Rebuild the split from the stored expense, as docs/api.md prescribes.
@@ -144,9 +149,9 @@ public final class ExpenseEditorViewModel {
         weights[memberId] = min(max(weight, 0), SplitMath.maxWeight)
     }
 
-    /// Adds an empty line that everyone shares until told otherwise.
+    /// Adds an empty line that every team member shares until told otherwise.
     public func addItem() {
-        items.append(ItemDraft(memberIds: Set(members.map(\.id))))
+        items.append(ItemDraft(memberIds: playerIds))
     }
 
     public func removeItem(id: UUID) {
@@ -236,10 +241,7 @@ public final class ExpenseEditorViewModel {
         do {
             let shares = try SplitMath.computeShares(amountCents: amountCents, split: split)
             return .shares(shares.map { share in
-                PersonShare(
-                    id: share.memberId, name: name(of: share.memberId), color: color(of: share.memberId),
-                    amountCents: share.amountCents
-                )
+                PersonShare(party: party(share.memberId), amountCents: share.amountCents)
             })
         } catch let error as SplitMath.SplitError {
             return .incomplete(error.message)
@@ -265,20 +267,29 @@ public final class ExpenseEditorViewModel {
         return Money.euro(amountCents)
     }
 
-    private func name(of memberId: String) -> String {
-        members.first { $0.id == memberId }?.name ?? "–"
-    }
-
-    /// The member's highlighter: their position in the group.
-    private func color(of memberId: String) -> GroupColor {
-        GroupColor.palette(at: members.firstIndex { $0.id == memberId } ?? 0)
+    private func party(_ memberId: String) -> Party {
+        members.first { $0.id == memberId } ?? Party(id: memberId, name: "–", highlighter: GroupColor.palette(at: 0))
     }
 
     /// The highlighters of the people who share a receipt line, in member order.
     public func colors(of item: ItemDraft) -> [GroupColor] {
-        members.indices
-            .filter { item.memberIds.contains(members[$0].id) }
-            .map { GroupColor.palette(at: $0) }
+        members.filter { item.memberIds.contains($0.id) }.compactMap(\.highlighter)
+    }
+
+    // MARK: Rit berekenen
+
+    /// The drive as typed; nil while the kilometres or the rate are not usable.
+    public var trip: TripCalculation? {
+        TripCalculation(kilometersText: tripKilometersText, rateText: tripRateText)
+    }
+
+    /// Fills in the amount of the drive and, when it is still empty, the description "Rit (84 km)".
+    public func applyTrip() {
+        guard let trip else { return }
+        amountText = Money.editingText(trip.amountCents)
+        if description.trimmed.isEmpty {
+            description = trip.description
+        }
     }
 
     // MARK: Saving, deleting and scanning
@@ -333,12 +344,11 @@ public final class ExpenseEditorViewModel {
     }
 
     /// Fills the lines, the total, the date and the description from a scanned receipt.
-    /// Every line starts shared by everyone; a description that was already typed is kept.
+    /// Every line starts shared by every team member; a description that was already typed is kept.
     func apply(_ scan: ReceiptScan) {
-        let everyone = Set(members.map(\.id))
         mode = .items
         items = scan.items.map {
-            ItemDraft(name: $0.name, amountText: Money.editingText($0.amountCents), memberIds: everyone)
+            ItemDraft(name: $0.name, amountText: Money.editingText($0.amountCents), memberIds: playerIds)
         }
         let total = scan.totalCents ?? scan.items.reduce(0) { $0 + $1.amountCents }
         amountText = Money.editingText(total)

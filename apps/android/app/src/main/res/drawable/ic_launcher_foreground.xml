@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The app icon: a receipt with its zigzag tear, a perforation and one highlighter stroke.
+  The app icon: a receipt with its zigzag tear, a perforation and one stroke of the mint highlighter (Split Sport).
   docs/design/v2/icon.svg scaled by 0.08 and centred, so the receipt and its perforation stay
   inside the 66 dp safe zone of the 108 dp adaptive icon canvas. Vector drawables cannot dash a
   stroke, so the dashes of the perforation are drawn as separate bars.
@@ -19,7 +19,7 @@
             android:fillColor="#FBF8F1"
             android:pathData="M272,176 H752 V800 L728,824 L704,800 L680,824 L656,800 L632,824 L608,800 L584,824 L560,800 L536,824 L512,800 L488,824 L464,800 L440,824 L416,800 L392,824 L368,800 L344,824 L320,800 L296,824 L272,800 Z" />
         <path
-            android:fillColor="#FFF04A"
+            android:fillColor="#8AF0AE"
             android:pathData="M300,420 L724,404 L730,488 L296,506 Z" />
         <path
             android:fillColor="#141414"

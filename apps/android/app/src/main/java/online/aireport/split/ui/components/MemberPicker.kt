@@ -1,6 +1,5 @@
 package online.aireport.split.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,8 +32,8 @@ import online.aireport.split.data.model.Member
 import online.aireport.split.ui.theme.SplitTheme
 
 /**
- * Picks one member of the group: the label with the chosen person's highlighted name on one
- * line; tapping it opens a menu with everyone.
+ * Picks one member of the team (a person or the pot): the label with the chosen name on one
+ * line; tapping it opens a menu with everyone offered.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -72,23 +70,15 @@ fun MemberPicker(
             ) {
                 Text(label, style = MaterialTheme.typography.bodyLarge)
                 if (selectedPosition >= 0) {
-                    PersonLabel(members[selectedPosition], selectedPosition, myMemberId)
+                    MemberLabel(members[selectedPosition], selectedPosition, myMemberId)
                 }
             }
             Icon(painterResource(R.drawable.ic_chevron_down), contentDescription = null, Modifier.size(20.dp))
         }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            shape = MaterialTheme.shapes.small,
-            containerColor = colors.paper,
-            tonalElevation = 0.dp,
-            shadowElevation = 0.dp,
-            border = BorderStroke(1.5.dp, colors.ink),
-        ) {
+        PaperMenu(expanded = expanded, onDismiss = { expanded = false }) {
             members.forEachIndexed { position, member ->
                 DropdownMenuItem(
-                    text = { PersonLabel(member, position, myMemberId) },
+                    text = { MemberLabel(member, position, myMemberId) },
                     onClick = {
                         onSelect(member.id)
                         expanded = false
@@ -100,18 +90,18 @@ fun MemberPicker(
 }
 
 /**
- * A person's highlighted name, with "(jij)" after it for the signed-in member (under it when
- * there is no room beside it).
+ * A member's name (highlighted for a person, the ink label for the pot), with "(jij)" after it
+ * for the signed-in member, or under it when there is no room beside it.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PersonLabel(member: Member, position: Int, myMemberId: String, modifier: Modifier = Modifier) {
+fun MemberLabel(member: Member, position: Int, myMemberId: String, modifier: Modifier = Modifier) {
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        PersonName(member.name, position)
+        MemberName(member, position)
         if (member.id == myMemberId) {
             Text(
                 text = stringResource(R.string.member_you_suffix),

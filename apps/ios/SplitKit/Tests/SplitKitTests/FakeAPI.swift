@@ -16,13 +16,16 @@ final class FakeAPI: SplitAPI, @unchecked Sendable {
     var groupResult = Fixtures.group
     var expensesResult: [Expense] = []
     var inviteResult = InvitePreview(
-        groupId: "g1", name: "Weekendje Texel", color: .teal, memberCount: 3, alreadyMember: false, unclaimedMembers: []
+        groupId: "g1", name: "Heren 3", color: .teal, sport: .hockey, club: "MHC Oostpoort", memberCount: 3,
+        alreadyMember: false, unclaimedMembers: []
     )
     var scanResult = ReceiptScan(merchant: nil, date: nil, totalCents: nil, items: [])
 
     private(set) var lastCredentials: (name: String?, email: String, password: String)?
     private(set) var lastProfile: (name: String, iban: String)?
-    private(set) var lastGroupChange: (name: String?, color: GroupColor?)?
+    private(set) var lastGroupPatch: GroupPatch?
+    private(set) var lastFine: (id: String?, name: String?, amountCents: Int?)?
+    private(set) var lastCharge: ChargeInput?
     private(set) var lastMemberName: String?
     private(set) var lastMemberId: String?
     private(set) var lastJoin: (code: String, memberId: String?)?
@@ -78,8 +81,8 @@ final class FakeAPI: SplitAPI, @unchecked Sendable {
         return groupsResult
     }
 
-    func createGroup(name: String, color: GroupColor?) async throws -> GroupDetail {
-        lastGroupChange = (name, color)
+    func createGroup(name: String, color: GroupColor?, sport: Sport, club: String, season: String) async throws -> GroupDetail {
+        lastGroupPatch = GroupPatch(name: name, color: color, sport: sport, club: club, season: season)
         try record("createGroup")
         return groupResult
     }
@@ -89,11 +92,38 @@ final class FakeAPI: SplitAPI, @unchecked Sendable {
         return groupResult
     }
 
-    func updateGroup(id: String, name: String?, color: GroupColor?) async throws -> GroupDetail {
-        lastGroupChange = (name, color)
+    func updateGroup(id: String, patch: GroupPatch) async throws -> GroupDetail {
+        lastGroupPatch = patch
         try record("updateGroup")
-        if let name { groupResult.name = name }
-        if let color { groupResult.color = color }
+        if let name = patch.name { groupResult.name = name }
+        if let color = patch.color { groupResult.color = color }
+        if let sport = patch.sport { groupResult.sport = sport }
+        if let club = patch.club { groupResult.club = club.isEmpty ? nil : club }
+        if let season = patch.season { groupResult.season = season.isEmpty ? nil : season }
+        if let treasurer = patch.treasurerMemberId { groupResult.treasurerMemberId = treasurer }
+        return groupResult
+    }
+
+    func addFine(groupId: String, name: String, amountCents: Int) async throws -> GroupDetail {
+        lastFine = (nil, name, amountCents)
+        try record("addFine")
+        groupResult.fines.append(Fine(id: "f-\(groupResult.fines.count + 1)", name: name, amountCents: amountCents))
+        return groupResult
+    }
+
+    func updateFine(groupId: String, fineId: String, name: String, amountCents: Int) async throws -> GroupDetail {
+        lastFine = (fineId, name, amountCents)
+        try record("updateFine")
+        if let index = groupResult.fines.firstIndex(where: { $0.id == fineId }) {
+            groupResult.fines[index] = Fine(id: fineId, name: name, amountCents: amountCents)
+        }
+        return groupResult
+    }
+
+    func removeFine(groupId: String, fineId: String) async throws -> GroupDetail {
+        lastFine = (fineId, nil, nil)
+        try record("removeFine")
+        groupResult.fines.removeAll { $0.id == fineId }
         return groupResult
     }
 
@@ -104,7 +134,10 @@ final class FakeAPI: SplitAPI, @unchecked Sendable {
     func addMember(groupId: String, name: String) async throws -> GroupDetail {
         lastMemberName = name
         try record("addMember")
+        // New team members come before the pot, which stays last.
+        let pot = groupResult.members.removeLast()
         groupResult.members.append(Member(id: "m-\(name.lowercased())", name: name, userId: nil, iban: nil))
+        groupResult.members.append(pot)
         return groupResult
     }
 
@@ -159,6 +192,12 @@ final class FakeAPI: SplitAPI, @unchecked Sendable {
         lastExpenseId = expenseId
         try record("deleteExpense")
         expensesResult.removeAll { $0.id == expenseId }
+    }
+
+    func createCharge(groupId: String, input: ChargeInput) async throws -> Expense {
+        lastCharge = input
+        try record("createCharge")
+        return Fixtures.expense(kind: input.type == .fine ? .fine : .contribution)
     }
 
     func createSettlement(groupId: String, input: SettlementInput) async throws -> Expense {

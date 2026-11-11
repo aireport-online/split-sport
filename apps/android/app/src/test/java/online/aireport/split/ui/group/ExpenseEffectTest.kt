@@ -48,6 +48,22 @@ class ExpenseEffectTest {
     }
 
     @Test
+    fun `what the pot pays for itself or a member advances for the pot is not yours`() {
+        val referee = dinner.copy(paidById = "pot", shares = listOf(ExpenseShare("pot", 1000)))
+        assertNull(referee.effectFor("anna"))
+        val balls = dinner.copy(paidById = "bas", shares = listOf(ExpenseShare("pot", 1000)))
+        assertNull(balls.effectFor("anna"))
+        assertEquals(1000L, balls.effectFor("bas"))
+    }
+
+    @Test
+    fun `fines and contributions have a stamp, no effect line`() {
+        val fine = dinner.copy(kind = ExpenseKind.FINE, paidById = "pot", shares = listOf(ExpenseShare("anna", 200)))
+        assertNull(fine.effectFor("anna"))
+        assertNull(fine.copy(kind = ExpenseKind.CONTRIBUTION).effectFor("anna"))
+    }
+
+    @Test
     fun `a settlement has no effect line`() {
         val settlement = dinner.copy(kind = ExpenseKind.SETTLEMENT, shares = listOf(ExpenseShare("bas", 1000)))
         assertNull(settlement.effectFor("anna"))

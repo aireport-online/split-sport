@@ -108,8 +108,9 @@ final class PaletteTests: XCTestCase {
         XCTAssertEqual(GroupColor.palette(at: 7), .slate)
         XCTAssertEqual(GroupColor.palette(at: 8), .amber)
         XCTAssertEqual(GroupColor.palette(at: 10), .green)
-        XCTAssertEqual(Fixtures.group.color(ofMember: Fixtures.chris.id), .green)
-        XCTAssertEqual(Fixtures.group.color(ofMember: "unknown"), .amber)
+        XCTAssertEqual(Fixtures.group.party(Fixtures.chris.id).highlighter, .green)
+        XCTAssertNil(Fixtures.group.party(Fixtures.pot.id).highlighter, "The pot is not a person and has no highlighter")
+        XCTAssertEqual(Fixtures.group.party("unknown").name, "–")
     }
 
     func testHexComponents() {
@@ -143,8 +144,12 @@ final class WordingTests: XCTestCase {
     }
 
     func testCountsAndIBAN() {
-        XCTAssertEqual(Wording.memberCount(1), "1 lid")
-        XCTAssertEqual(Wording.memberCount(4), "4 leden")
+        XCTAssertEqual(Wording.memberCount(1), "1 teamlid")
+        XCTAssertEqual(Wording.memberCount(5), "5 teamleden")
+        XCTAssertEqual(Wording.teamLine(sport: .hockey, club: "MHC Oostpoort", season: "2026/27"), "Hockey · MHC Oostpoort · 2026/27")
+        XCTAssertEqual(Wording.teamLine(sport: .voetbal, club: nil, season: "2026/27"), "Voetbal · 2026/27")
+        XCTAssertEqual(Wording.teamLine(sport: .overig, club: "", season: nil), "Overig")
+        XCTAssertEqual(Wording.chargeTotal(count: 5, amountCents: 2500), "5 × €\u{00A0}25,00 = €\u{00A0}125,00")
         XCTAssertEqual(Wording.groupedIBAN("NL91ABNA0417164300"), "NL91 ABNA 0417 1643 00")
         XCTAssertEqual(Wording.groupedIBAN(""), "")
     }
@@ -160,20 +165,21 @@ final class InviteLinkTests: XCTestCase {
         func code(_ text: String) throws -> String? {
             InviteLink.code(from: try XCTUnwrap(URL(string: text)))
         }
-        XCTAssertEqual(try code("split://join/ABCD2345"), "ABCD2345")
-        XCTAssertEqual(try code("split://join/abcd2345"), "ABCD2345")
-        XCTAssertEqual(try code("split:///join/ABCD2345"), "ABCD2345")
+        XCTAssertEqual(try code("splitsport://join/ABCD2345"), "ABCD2345")
+        XCTAssertEqual(try code("splitsport://join/abcd2345"), "ABCD2345")
+        XCTAssertEqual(try code("splitsport:///join/ABCD2345"), "ABCD2345")
+        XCTAssertNil(try code("split://join/ABCD2345"), "The scheme of the other app is not ours")
         XCTAssertEqual(try code("https://split.example.nl/join/ABCD2345"), "ABCD2345")
         XCTAssertEqual(try code("http://localhost:8787/join/ABCD2345/"), "ABCD2345")
-        XCTAssertNil(try code("split://join"))
-        XCTAssertNil(try code("split://groups/123"))
+        XCTAssertNil(try code("splitsport://join"))
+        XCTAssertNil(try code("splitsport://groups/123"))
         XCTAssertNil(try code("https://split.example.nl/"))
     }
 
     func testReadsTypedAndPastedInput() {
         XCTAssertEqual(InviteLink.code(fromInput: " abcd 2345 "), "ABCD2345")
         XCTAssertEqual(InviteLink.code(fromInput: "https://split.example.nl/join/abcd2345"), "ABCD2345")
-        XCTAssertEqual(InviteLink.code(fromInput: "split://join/ABCD2345"), "ABCD2345")
+        XCTAssertEqual(InviteLink.code(fromInput: "splitsport://join/ABCD2345"), "ABCD2345")
         XCTAssertEqual(InviteLink.code(fromInput: ""), "")
     }
 }

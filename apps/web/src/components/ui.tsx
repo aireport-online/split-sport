@@ -1,7 +1,7 @@
-import type { GroupColor } from "@split/core";
+import type { GroupColor, Member } from "@split/core";
 import { X } from "lucide-react";
 import { useEffect, useRef, type ButtonHTMLAttributes, type FormEvent, type ReactNode } from "react";
-import { signedMoney, signedPlain } from "../lib/format";
+import { memberColor, signedMoney, signedPlain } from "../lib/format";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -47,16 +47,32 @@ export function GroupName({ name, color }: { name: string; color: GroupColor }) 
 /** The dotted line between a name and its amount on a receipt. */
 export const Leader = () => <span className="leader" aria-hidden="true" />;
 
-/** The rubber stamp on a payment between members. */
-export const Stamp = ({ children }: { children: ReactNode }) => <span className="stamp">{children}</span>;
+/**
+ * A team member or the team pot, by id: a person is their name on their
+ * highlighter, the pot (not a person) a label printed in ink.
+ */
+export function Person({ members, memberId }: { members: Member[]; memberId: string }) {
+  const member = members.find((m) => m.id === memberId);
+  if (!member) return <span>Onbekend</span>;
+  if (member.kind === "pot") return <span className="pot-label">{member.name}</span>;
+  return <Mark color={memberColor(members, memberId)}>{member.name}</Mark>;
+}
 
-/** "Split", torn in two along a perforation. */
+/** A rubber stamp: red on payments and fines, ink on contributions. */
+export const Stamp = ({ children, ink }: { children: ReactNode; ink?: boolean }) => (
+  <span className={`stamp${ink ? " stamp--ink" : ""}`}>{children}</span>
+);
+
+/** "Split", torn in two along a perforation, with the stamp "SPORT". */
 export function Wordmark({ size }: { size?: "small" | "large" }) {
   return (
-    <span className={`wordmark${size ? ` wordmark--${size}` : ""}`} role="img" aria-label="Split">
+    <span className={`wordmark${size ? ` wordmark--${size}` : ""}`} role="img" aria-label="Split Sport">
       <span aria-hidden="true">Sp</span>
       <span className="wordmark__cut" aria-hidden="true" />
       <span aria-hidden="true">lit</span>
+      <span className="wordmark__sport" aria-hidden="true">
+        Sport
+      </span>
     </span>
   );
 }

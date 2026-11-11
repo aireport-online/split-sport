@@ -1,26 +1,35 @@
 import type { Expense, GroupDetail } from "@split/core";
 import { describe, expect, it } from "vitest";
-import { applyScan, draftFromExpense, evaluateDraft, newDraft, newItem } from "../src/expense/draft";
+import { applyRide, applyScan, draftFromExpense, evaluateDraft, newDraft, newItem } from "../src/expense/draft";
 
 const group: GroupDetail = {
   id: "g",
   name: "Huis",
   color: "blue",
+  sport: "voetbal",
+  club: null,
+  season: "2026/27",
   currency: "EUR",
   inviteCode: "ABCDEFGH",
   myMemberId: "a",
+  potMemberId: "pot",
+  treasurerMemberId: "a",
   members: [
-    { id: "a", name: "Anna", userId: "u1", iban: null },
-    { id: "b", name: "Bas", userId: "u2", iban: null },
-    { id: "c", name: "Chris", userId: null, iban: null },
+    { id: "a", name: "Anna", kind: "player", userId: "u1", iban: null },
+    { id: "b", name: "Bas", kind: "player", userId: "u2", iban: null },
+    { id: "c", name: "Chris", kind: "player", userId: null, iban: null },
+    { id: "pot", name: "Teamkas", kind: "pot", userId: null, iban: null },
   ],
   balances: [],
   transfers: [],
+  pot: { cashCents: 0, toReceiveCents: 0, toPayCents: 0 },
+  fines: [],
+  fineStats: [],
   totalSpentCents: 0,
 };
 
 describe("expense draft", () => {
-  it("starts as an equal split over everyone, paid by you", () => {
+  it("starts as an equal split over the team members, paid by you", () => {
     const draft = { ...newDraft(group), description: "Boodschappen", amount: "10" };
     const result = evaluateDraft(draft, group.members);
     expect(result.problem).toBeNull();
@@ -113,7 +122,26 @@ describe("expense draft", () => {
       updatedAt: "",
     };
     const draft = draftFromExpense(expense, group);
-    expect(draft).toMatchObject({ amount: "90,00", paidById: "b", mode: "shares", weights: { a: 2, b: 1, c: 0 } });
+    expect(draft).toMatchObject({ amount: "90,00", paidById: "b", mode: "shares", weights: { a: 2, b: 1, c: 0, pot: 0 } });
     expect(evaluateDraft(draft, group.members).shares.map((s) => s.amountCents)).toEqual([6000, 3000]);
+  });
+
+  it("charges an expense to the pot when only the pot is ticked", () => {
+    const draft = { ...newDraft(group), description: "Scheidsrechter", amount: "30", paidById: "pot", equalIds: ["pot"] };
+    const result = evaluateDraft(draft, group.members);
+    expect(result.shares).toEqual([{ memberId: "pot", amountCents: 3000 }]);
+    expect(result.input).toMatchObject({ paidById: "pot", split: { mode: "equal", memberIds: ["pot"] } });
+  });
+
+  it("works out a ride from kilometres and a rate", () => {
+    const ride = applyRide(newDraft(group), "84", "0,23");
+    expect(ride).toMatchObject({ amount: "19,32", description: "Rit (84 km)" });
+    expect(applyRide({ ...newDraft(group), description: "Naar Zwolle" }, "12,5", "0,30")).toMatchObject({
+      amount: "3,75",
+      description: "Naar Zwolle",
+    });
+    expect(applyRide(newDraft(group), "", "0,23")).toBeNull();
+    expect(applyRide(newDraft(group), "84", "nul")).toBeNull();
+    expect(applyRide(newDraft(group), "-5", "0,23")).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 import SplitKit
 import SwiftUI
 
-/// "Nieuwe groep".
+/// "Nieuw team": name, sport, club, season and highlighter.
 @MainActor
 struct NewGroupSheet: View {
     let onCreated: (GroupDetail) -> Void
@@ -18,12 +18,15 @@ struct NewGroupSheet: View {
             Desk {
                 Receipt {
                     PaperField(label: "Naam", text: $model.name)
-                    Text("Bijvoorbeeld je huis, een vakantie of een etentje.")
+                    Text("Bijvoorbeeld Heren 3, Dames 2 of de zaterdagploeg.")
                         .font(.tillSmall)
                         .foregroundStyle(Theme.mutedInk)
+                    SportMenu(selection: $model.sport)
+                    PaperField(label: "Vereniging (mag leeg blijven)", text: $model.club)
+                    PaperField(label: "Seizoen", text: $model.season)
                 }
                 Receipt {
-                    ReceiptTitle(text: "Kleur")
+                    ReceiptTitle(text: "Markeerstift")
                     HighlighterPicker(selection: $model.color)
                     if !model.name.isEmpty {
                         Perforation()
@@ -34,7 +37,7 @@ struct NewGroupSheet: View {
                     ErrorBanner(message: message)
                 }
             }
-            .navigationTitle("Nieuwe groep")
+            .navigationTitle("Nieuw team")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -51,7 +54,7 @@ struct NewGroupSheet: View {
                             }
                         }
                     } label: {
-                        BusyLabel(title: "Maak groep", isBusy: model.isSaving)
+                        BusyLabel(title: "Maak team", isBusy: model.isSaving)
                     }
                     .buttonStyle(PaperButtonStyle(kind: .primary))
                     .disabled(!model.canSave)

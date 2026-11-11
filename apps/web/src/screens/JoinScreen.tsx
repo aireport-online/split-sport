@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Button, Empty, ErrorBanner, GroupName, SkeletonRows } from "../components/ui";
 import { api, errorMessage } from "../lib/api";
+import { teamLine, teamMembers } from "../lib/format";
 import { applyGroup, keys } from "../lib/queries";
 import { useUser } from "../lib/session";
 
@@ -83,17 +84,18 @@ export function JoinScreen() {
               <h2 style={{ fontSize: 30 }}>
                 <GroupName name={invite.data.name} color={invite.data.color} />
               </h2>
-              <p className="muted small" style={{ marginTop: 6 }}>
-                {invite.data.memberCount} {invite.data.memberCount === 1 ? "lid" : "leden"}
+              <p className="small" style={{ marginTop: 6 }}>
+                {teamLine({ ...invite.data, season: null })}
               </p>
+              <p className="muted small">{teamMembers(invite.data.memberCount)}</p>
             </div>
 
             {invite.data.alreadyMember ? (
               <>
-                <p className="muted">Je doet al mee met deze groep.</p>
+                <p className="muted">Je zit al in dit team.</p>
                 <div className="panel__actions">
                   <Link className="button button--primary" to={`/groups/${invite.data.groupId}`}>
-                    Naar de groep
+                    Naar het team
                   </Link>
                 </div>
               </>
@@ -112,7 +114,7 @@ export function JoinScreen() {
                       >
                         <span>
                           {member.name}
-                          <span className="choice__sub">Staat al in de groep; neem dit saldo over</span>
+                          <span className="choice__sub">Staat al in het team; neem dit saldo over</span>
                         </span>
                       </button>
                     ))}

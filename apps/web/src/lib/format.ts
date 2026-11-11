@@ -1,4 +1,4 @@
-import { GROUP_COLORS, formatCents, type GroupColor, type Member } from "@split/core";
+import { GROUP_COLORS, SPORT_LABELS, formatCents, type GroupColor, type Member, type Sport } from "@split/core";
 
 /** "€ 1.234,56" with a normal space, so it lines up in tabular columns. */
 export const money = (cents: number, currency = "EUR"): string =>
@@ -67,3 +67,13 @@ export const formatIban = (iban: string): string => iban.replace(/(.{4})/g, "$1 
 
 export const memberName = (members: Member[], memberId: string): string =>
   members.find((m) => m.id === memberId)?.name ?? "Onbekend";
+
+/** "1 teamlid", "5 teamleden" */
+export const teamMembers = (count: number): string => `${count} ${count === 1 ? "teamlid" : "teamleden"}`;
+
+/** "Hockey · MHC Oostpoort · 2026/27": the sport, and the club and season when they are filled in. */
+export const teamLine = (team: { sport: Sport; club: string | null; season: string | null }): string =>
+  [SPORT_LABELS[team.sport], team.club, team.season].filter(Boolean).join(" · ");
+
+/** The people of a team, without the pot. */
+export const players = (members: Member[]): Member[] => members.filter((m) => m.kind === "player");

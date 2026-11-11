@@ -30,7 +30,7 @@ export function AuthScreen({ mode }: { mode: "login" | "register" }) {
         <div className="card auth__card">
         <h1>{register ? "Account maken" : "Inloggen"}</h1>
         <p className="muted small" style={{ marginTop: 4 }}>
-          {register ? "Houd met je groep bij wie wat betaald heeft." : "Bekijk je groepen en wat er nog openstaat."}
+          {register ? "De teamkas, inleg en boetes van je team op één bon." : "Bekijk je teams en wat er nog openstaat."}
         </p>
         <form
           noValidate

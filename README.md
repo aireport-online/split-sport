@@ -1,8 +1,16 @@
-# Split
+# Split Sport
 
-Keep track with your group of who paid what, and settle up in one go. Groups with a running balance
-(house, holiday, dinner), expenses split equally, by amount, by shares or per receipt line, receipt
-scanning, and suggested payments that bring everyone back to zero.
+The team pot, contributions, fines and shared expenses of a sports team, on one receipt. Split Sport
+is a fork of [Split](https://github.com/aireport-online/split) for sports clubs:
+
+- **Teams** with a sport, a club and a season, instead of loose groups.
+- **Teamkas**: every team has a pot with a treasurer (penningmeester). The app shows what is really
+  in it (kasstand), what is still to come in and what the pot still owes.
+- **Inleg**: ask everyone for a contribution in one go.
+- **Boetes**: the team's own fine list, one tap to give a fine, and a fine ranking (boetekoning).
+- **Uitgaven**: paid from the pot, advanced for the team, or shared among players, split equally, by
+  amount, by shares or per receipt line (with receipt scanning), plus a ride calculator for away games.
+- **Vereffenen**: first everyone squares up with the pot, then players among themselves.
 
 One API, three clients:
 
@@ -18,13 +26,13 @@ The interface is Dutch. The house style ("Kassabon": receipt paper, till numeral
 per person) and the screens are described in [`docs/design.md`](docs/design.md), the REST API in
 [`docs/api.md`](docs/api.md).
 
-![The web app](docs/screenshots/web-group.jpg)
+![The web app](docs/screenshots/web-team.jpg)
 
 <p>
-  <img src="docs/screenshots/android-groups.jpg" width="24%" alt="Android: groups">
-  <img src="docs/screenshots/android-group-expenses.jpg" width="24%" alt="Android: expenses">
-  <img src="docs/screenshots/android-group-balances.jpg" width="24%" alt="Android: balances">
-  <img src="docs/screenshots/android-expense-per-line.jpg" width="24%" alt="Android: an expense split per receipt line">
+  <img src="docs/screenshots/android-groups.jpg" width="24%" alt="Android: teams">
+  <img src="docs/screenshots/android-group-expenses.jpg" width="24%" alt="Android: expenses, fines and contributions">
+  <img src="docs/screenshots/android-group-pot.jpg" width="24%" alt="Android: the team pot">
+  <img src="docs/screenshots/android-give-fine.jpg" width="24%" alt="Android: giving a fine">
 </p>
 
 ## Run it
@@ -40,7 +48,7 @@ pnpm dev
 ```
 
 This starts the API on http://localhost:8787 and the web app on http://localhost:5173. To get a
-group with a month of expenses to look at:
+hockey team with a pot, contributions, fines and a few weeks of expenses to look at:
 
 ```bash
 pnpm --filter @split/api seed
@@ -99,11 +107,15 @@ public URL as their server address (see their READMEs).
 ## How it fits together
 
 - **Money** is integer cents everywhere; nothing is ever a float.
-- **Members** belong to a group and may or may not have an account, so you can add people by name
-  and let them claim their name later with the invite link.
-- **Expenses and payments** share one table. A payment is an entry paid by the debtor with a single
-  share for the receiver, so a balance is simply everything a member paid minus everything they owe.
-- **Settling up** suggests at most n−1 payments by repeatedly matching the largest debtor with the
-  largest creditor (`packages/core/src/balances.ts`).
+- **Team members** may or may not have an account, so you can add people by name and let them claim
+  their name later with the invite link.
+- **The pot is a member** of the team that is not a person. A contribution or a fine is an entry
+  "paid" by the pot with a share for every charged member; paying the pot is a payment to it. One
+  ledger therefore covers the pot and the players, and every balance splits into what a member has
+  with the pot and with the others (`packages/core/src/balances.ts`).
+- **Kasstand** counts only money that moved: payments into the pot, minus payments out of it and
+  what the pot spent. An unpaid fine is a claim, not cash.
+- **Settling up** first pairs every member with the pot, then suggests at most n−1 payments among
+  the players by repeatedly matching the largest debtor with the largest creditor.
 - **Receipt scanning** sends the photo to Claude with a structured-output schema
   (`apps/api/src/receipts.ts`) and returns the lines for the "Per regel" split. Photos are not stored.

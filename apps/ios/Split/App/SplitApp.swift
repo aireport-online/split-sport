@@ -22,7 +22,7 @@ struct SplitApp: App {
                 .tint(Theme.ink)
                 .task { await session.restore() }
                 .onOpenURL { url in
-                    // split://join/<code>: the code is shown as soon as someone is logged in.
+                    // splitsport://join/<code>: the code is shown as soon as someone is logged in.
                     session.open(url)
                 }
         }

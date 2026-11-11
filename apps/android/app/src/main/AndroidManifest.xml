@@ -24,14 +24,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Invitation links: split://join/<code> -->
+            <!-- Invitation links: splitsport://join/<code> -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:host="join"
-                    android:scheme="split" />
+                    android:scheme="splitsport" />
             </intent-filter>
         </activity>
 

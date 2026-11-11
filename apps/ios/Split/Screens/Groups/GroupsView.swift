@@ -1,7 +1,7 @@
 import SplitKit
 import SwiftUI
 
-/// "Groepen": the home screen, and the root of the navigation stack.
+/// "Teams": the home screen, and the root of the navigation stack.
 @MainActor
 struct GroupsView: View {
     private enum Sheet: Identifiable {
@@ -31,7 +31,7 @@ struct GroupsView: View {
     var body: some View {
         NavigationStack(path: $path) {
             content
-                .navigationTitle("Groepen")
+                .navigationTitle("Teams")
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
@@ -45,10 +45,10 @@ struct GroupsView: View {
                 .navigationDestination(for: GroupRoute.self) { route in
                     GroupView(session: session, route: route, onLeave: { path.removeAll() })
                 }
-                // Runs again when coming back from a group, so balances are fresh.
+                // Runs again when coming back from a team, so balances are fresh.
                 .task { await model.load() }
         }
-        // On the stack itself, so an invite link also opens while a group is on screen.
+        // On the stack itself, so an invite link also opens while a team is on screen.
         .task(id: session.pendingInviteCode) { showPendingInvite() }
         .sheet(item: $sheet, onDismiss: { Task { await model.load() } }) { sheet in
             switch sheet {
@@ -90,7 +90,7 @@ struct GroupsView: View {
             .refreshable { await model.load() }
             .safeAreaInset(edge: .bottom) {
                 BottomBar {
-                    Button("Nieuwe groep") {
+                    Button("Nieuw team") {
                         sheet = .newGroup
                     }
                     .buttonStyle(PaperButtonStyle(kind: .primary))
@@ -105,13 +105,13 @@ struct GroupsView: View {
 
     private var emptyState: some View {
         Receipt {
-            ReceiptTitle(text: "Nog geen groepen")
-            Text("Maak er een voor je huis, vakantie of etentje.")
+            ReceiptTitle(text: "Nog geen teams")
+            Text("Maak er een voor je elftal, zevental of trainingsgroep.")
                 .foregroundStyle(Theme.mutedInk)
         }
     }
 
-    /// Opens a group that was just created or joined.
+    /// Opens a team that was just created or joined.
     private func show(_ group: GroupDetail) {
         sheet = nil
         path = [GroupRoute(group)]
@@ -125,7 +125,7 @@ struct GroupsView: View {
     }
 }
 
-/// The "Jouw saldo" receipt: the balance over all groups as a large figure, and in words.
+/// The "Jouw saldo" receipt: the balance over all teams as a large figure, and in words.
 @MainActor
 private struct TotalBalanceReceipt: View {
     let figure: String
@@ -147,8 +147,8 @@ private struct TotalBalanceReceipt: View {
     }
 }
 
-/// One group as a small receipt: its name underlined with its highlighter,
-/// the number of members and your balance.
+/// One team as a small receipt: its name underlined with its highlighter, the
+/// line "Hockey · MHC Oostpoort · 2026/27", the number of team members and your balance.
 @MainActor
 private struct GroupReceipt: View {
     let group: GroupSummary
@@ -156,6 +156,9 @@ private struct GroupReceipt: View {
     var body: some View {
         Receipt {
             GroupNameText(name: group.name, color: group.color)
+            Text(Wording.teamLine(sport: group.sport, club: group.club, season: group.season))
+                .font(.tillSmall)
+                .foregroundStyle(Theme.mutedInk)
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(Wording.memberCount(group.memberCount))
                     .font(.tillSmall)

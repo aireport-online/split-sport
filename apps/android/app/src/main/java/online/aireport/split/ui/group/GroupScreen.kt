@@ -3,7 +3,9 @@ package online.aireport.split.ui.group
 import android.content.ClipData
 import android.os.Build
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -38,6 +40,7 @@ import online.aireport.split.ui.components.IconActionButton
 import online.aireport.split.ui.components.LoadingState
 import online.aireport.split.ui.components.MessageEffect
 import online.aireport.split.ui.components.PrimaryButton
+import online.aireport.split.ui.components.SecondaryButton
 import online.aireport.split.ui.components.Segmented
 import online.aireport.split.ui.components.SplitTopBar
 
@@ -48,6 +51,8 @@ fun GroupRoute(
     onOpenSettings: () -> Unit,
     onAddExpense: () -> Unit,
     onEditExpense: (String) -> Unit,
+    onGiveFine: () -> Unit,
+    onAskContribution: () -> Unit,
 ) {
     val viewModel = splitViewModel {
         GroupViewModel(groupId, it.groupRepository, it.expenseRepository, it.groupChanges)
@@ -66,6 +71,8 @@ fun GroupRoute(
         onOpenSettings = onOpenSettings,
         onAddExpense = onAddExpense,
         onEditExpense = onEditExpense,
+        onGiveFine = onGiveFine,
+        onAskContribution = onAskContribution,
         onRefresh = viewModel::refresh,
         onRetry = viewModel::retry,
         onMarkAsPaid = viewModel::onMarkAsPaid,
@@ -81,13 +88,14 @@ fun GroupRoute(
         onSettlementChange = viewModel::onSettlementChange,
         onSettlementSave = viewModel::saveSettlement,
         onSettlementDismiss = viewModel::onSettlementDismiss,
-        onDeleteSettlement = viewModel::deleteSettlement,
+        onDeleteEntry = viewModel::deleteEntry,
         onMessageShown = viewModel::onMessageShown,
     )
 }
 
 enum class GroupTab(@param:StringRes val labelRes: Int) {
     EXPENSES(R.string.group_tab_expenses),
+    POT(R.string.group_tab_pot),
     BALANCES(R.string.group_tab_balances),
 }
 
@@ -100,6 +108,8 @@ fun GroupScreen(
     onOpenSettings: () -> Unit,
     onAddExpense: () -> Unit,
     onEditExpense: (String) -> Unit,
+    onGiveFine: () -> Unit,
+    onAskContribution: () -> Unit,
     onRefresh: () -> Unit,
     onRetry: () -> Unit,
     onMarkAsPaid: (Transfer) -> Unit,
@@ -107,12 +117,12 @@ fun GroupScreen(
     onSettlementChange: (SettlementForm) -> Unit,
     onSettlementSave: () -> Unit,
     onSettlementDismiss: () -> Unit,
-    onDeleteSettlement: (String) -> Unit,
+    onDeleteEntry: (String) -> Unit,
     onMessageShown: () -> Unit,
     initialTab: GroupTab = GroupTab.EXPENSES,
 ) {
     var tab by rememberSaveable { mutableStateOf(initialTab) }
-    var openSettlementId by rememberSaveable { mutableStateOf<String?>(null) }
+    var openEntryId by rememberSaveable { mutableStateOf<String?>(null) }
     val group = state.group
     MessageEffect(state.message, snackbarHostState, onMessageShown)
 
@@ -135,6 +145,15 @@ fun GroupScreen(
         bottomBar = {
             if (group != null) {
                 BottomActionBar {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SecondaryButton(stringResource(R.string.fine_give), onGiveFine, Modifier.weight(1f), small = true)
+                        SecondaryButton(
+                            text = stringResource(R.string.contribution_ask),
+                            onClick = onAskContribution,
+                            modifier = Modifier.weight(1f),
+                            small = true,
+                        )
+                    }
                     PrimaryButton(stringResource(R.string.expense_add), onAddExpense, Modifier.fillMaxWidth())
                 }
             }
@@ -160,12 +179,11 @@ fun GroupScreen(
                             group = group,
                             expenses = state.expenses,
                             onOpenExpense = { expense ->
-                                when (expense.kind) {
-                                    ExpenseKind.EXPENSE -> onEditExpense(expense.id)
-                                    ExpenseKind.SETTLEMENT -> openSettlementId = expense.id
-                                }
+                                // Only an expense can be edited; the rest can only be removed.
+                                if (expense.kind == ExpenseKind.EXPENSE) onEditExpense(expense.id) else openEntryId = expense.id
                             },
                         )
+                        GroupTab.POT -> PotTab(group, onMarkAsPaid, onCopyIban)
                         GroupTab.BALANCES -> BalancesTab(group, onMarkAsPaid, onCopyIban)
                     }
                 }
@@ -185,16 +203,16 @@ fun GroupScreen(
         )
     }
 
-    val openSettlement: Expense? = state.expenses.firstOrNull { it.id == openSettlementId }
-    if (group != null && openSettlement != null) {
-        SettlementDialog(
-            settlement = openSettlement,
+    val openEntry: Expense? = state.expenses.firstOrNull { it.id == openEntryId }
+    if (group != null && openEntry != null) {
+        EntryDialog(
+            entry = openEntry,
             group = group,
             onDelete = {
-                openSettlementId = null
-                onDeleteSettlement(openSettlement.id)
+                openEntryId = null
+                onDeleteEntry(openEntry.id)
             },
-            onDismiss = { openSettlementId = null },
+            onDismiss = { openEntryId = null },
         )
     }
 }

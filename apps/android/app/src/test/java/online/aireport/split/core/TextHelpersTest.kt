@@ -20,12 +20,12 @@ class TextHelpersTest {
 
     @Test
     fun `invite codes are found in share links`() {
-        assertEquals("ABCD2345", InviteCode.fromLink("split://join/ABCD2345"))
+        assertEquals("ABCD2345", InviteCode.fromLink("splitsport://join/ABCD2345"))
         assertEquals("ABCD2345", InviteCode.fromLink("https://split.example.org/join/abcd2345"))
         assertEquals("ABCD2345", InviteCode.fromLink("http://10.0.2.2:8787/join/ABCD2345/?ref=share"))
         assertEquals("ABCD2345", InviteCode.fromLink(" abcd2345 "))
         assertNull(InviteCode.fromLink("https://split.example.org/groups/ABCD2345"))
-        assertNull(InviteCode.fromLink("split://join/short"))
+        assertNull(InviteCode.fromLink("splitsport://join/short"))
     }
 
     @Test

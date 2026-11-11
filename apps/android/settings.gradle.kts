@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "split-android"
+rootProject.name = "split-sport-android"
 include(":app")

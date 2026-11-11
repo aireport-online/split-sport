@@ -22,6 +22,10 @@ private val LocalSplitColors = staticCompositionLocalOf { LightSplitColors }
  * everything laid on it is paper (all `surfaceContainer` roles, so there are no tonal
  * surfaces), ink is `primary` and `outline`, the perforation is `outlineVariant`, stamp red is
  * `error`.
+ *
+ * Material looks up the content colour of a surface by comparing colours (`contentColorFor`), in
+ * a fixed order of roles. So paper may only be the colour of roles whose content is ink: giving
+ * it to `errorContainer` or `surfaceVariant` as well would print text on paper in red or grey.
  */
 private fun SplitColors.toColorScheme(dark: Boolean): ColorScheme {
     val scheme = if (dark) darkColorScheme() else lightColorScheme()
@@ -43,15 +47,15 @@ private fun SplitColors.toColorScheme(dark: Boolean): ColorScheme {
         onBackground = ink,
         surface = desk,
         onSurface = ink,
-        surfaceVariant = paper,
+        surfaceVariant = desk,
         onSurfaceVariant = mutedInk,
         surfaceTint = paper,
         inverseSurface = ink,
         inverseOnSurface = onInk,
         error = stamp,
         onError = onInk,
-        errorContainer = paper,
-        onErrorContainer = stamp,
+        errorContainer = stamp,
+        onErrorContainer = onInk,
         outline = ink,
         outlineVariant = perforation,
         scrim = Color.Black,

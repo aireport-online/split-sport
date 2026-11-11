@@ -42,8 +42,13 @@ class SplitApiFactory(
     }
 }
 
-/** JSON as the Split API speaks it: unknown keys are fine, absent values are left out. */
+/**
+ * JSON as the Split API speaks it: unknown keys are fine, absent values are left out, and an
+ * enum value this version does not know becomes the property's default when it has one (a sport
+ * added by a newer server is shown as "Overig").
+ */
 val SplitJson: Json = Json {
     ignoreUnknownKeys = true
     explicitNulls = false
+    coerceInputValues = true
 }

@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:locale="nl">
-    <string name="app_name" translatable="false">Split</string>
+    <string name="app_name" translatable="false">Split Sport</string>
+    <!-- The stamp after "Split" in the wordmark. -->
+    <string name="wordmark_stamp" translatable="false">Sport</string>
 
     <!-- Common actions -->
     <string name="action_ok">OK</string>
     <string name="action_cancel">Annuleren</string>
     <string name="action_back">Terug</string>
-    <string name="action_create">Aanmaken</string>
+    <string name="action_create">Team maken</string>
     <string name="action_save">Opslaan</string>
     <string name="action_delete">Verwijderen</string>
     <string name="action_close">Sluiten</string>
@@ -31,14 +33,18 @@
     <string name="field_paid_by">Betaald door</string>
     <string name="field_item_name">Regel</string>
     <string name="field_iban">IBAN</string>
+    <string name="field_sport">Sport</string>
+    <string name="field_club">Vereniging</string>
+    <string name="field_season">Seizoen</string>
+    <string name="field_optional">Niet verplicht.</string>
 
     <!-- People -->
     <string name="member_you_suffix">(jij)</string>
     <string name="member_unknown">Onbekend</string>
     <string name="member_no_account">geen account</string>
     <plurals name="member_count">
-        <item quantity="one">%1$d lid</item>
-        <item quantity="other">%1$d leden</item>
+        <item quantity="one">%1$d teamlid</item>
+        <item quantity="other">%1$d teamleden</item>
     </plurals>
 
     <!-- Balances -->
@@ -60,14 +66,28 @@
     <string name="auth_server_hint">Het adres van de Split-server waarmee je wilt verbinden.</string>
 
     <!-- Groups (home) -->
-    <string name="groups_title">Groepen</string>
+    <string name="groups_title">Teams</string>
     <string name="groups_total_balance">Jouw saldo</string>
-    <string name="groups_new">Nieuwe groep</string>
-    <string name="groups_new_placeholder">Weekendje Texel</string>
+    <string name="groups_new">Nieuw team</string>
+    <string name="groups_new_placeholder">Heren 3</string>
+    <string name="groups_new_club_placeholder">MHC Oostpoort</string>
     <string name="groups_join">Deelnemen met code</string>
-    <string name="groups_empty">Nog geen groepen. Maak er een voor je huis, vakantie of etentje.</string>
+    <string name="groups_empty">Nog geen teams. Maak er een voor je elftal, zevental of trainingsgroep.</string>
 
-    <!-- Group colours, for screen readers -->
+    <!-- Sports -->
+    <string name="sport_voetbal">Voetbal</string>
+    <string name="sport_hockey">Hockey</string>
+    <string name="sport_korfbal">Korfbal</string>
+    <string name="sport_volleybal">Volleybal</string>
+    <string name="sport_handbal">Handbal</string>
+    <string name="sport_basketbal">Basketbal</string>
+    <string name="sport_tennis">Tennis</string>
+    <string name="sport_padel">Padel</string>
+    <string name="sport_rugby">Rugby</string>
+    <string name="sport_waterpolo">Waterpolo</string>
+    <string name="sport_overig">Overig</string>
+
+    <!-- Team colours, for screen readers -->
     <string name="color_blue">Blauw</string>
     <string name="color_amber">Geel</string>
     <string name="color_teal">Turquoise</string>
@@ -77,18 +97,26 @@
     <string name="color_lime">Limoen</string>
     <string name="color_slate">Grijs</string>
 
-    <!-- Group -->
+    <!-- Team -->
     <string name="group_tab_expenses">Uitgaven</string>
+    <string name="group_tab_pot">Teamkas</string>
     <string name="group_tab_balances">Saldo</string>
-    <string name="expenses_empty">Nog geen uitgaven. Voeg de eerste toe.</string>
+    <string name="expenses_empty">Nog niets genoteerd. Vraag de eerste inleg of voeg een uitgave toe.</string>
     <!-- Follows the highlighted name of who paid: "Anna betaalde · 2 nov". -->
     <string name="expense_paid_on">betaalde · %1$s</string>
     <string name="settlement_paid_on">betaling · %1$s</string>
+    <!-- Follows the highlighted names of who got the fine: "Noor · 2 nov". -->
+    <string name="entry_on">· %1$s</string>
+    <!-- A contribution: "5 × 25,00 · 2 nov". -->
+    <string name="contribution_each_on">%1$d × %2$s · %3$s</string>
     <string name="stamp_paid">Betaald</string>
+    <string name="stamp_fine">Boete</string>
+    <string name="stamp_contribution">Inleg</string>
+    <string name="stamp_king">Koning</string>
     <string name="expense_effect_positive">je krijgt %1$s</string>
     <string name="expense_effect_negative">je betaalt %1$s</string>
     <string name="settlement_title">%1$s betaalde %2$s</string>
-    <string name="settlement_details">%1$s · %2$s</string>
+    <string name="entry_details">%1$s · %2$s</string>
     <string name="settle_heading">Vereffenen</string>
     <string name="settle_everyone_square">Iedereen staat quitte.</string>
     <string name="settle_transfer">%1$s betaalt %2$s %3$s</string>
@@ -98,22 +126,56 @@
     <string name="iban_copy">IBAN kopiëren</string>
     <string name="iban_copied">IBAN gekopieerd</string>
 
+    <!-- Teamkas -->
+    <string name="pot_cash">Kasstand</string>
+    <string name="pot_to_receive">Nog te ontvangen</string>
+    <string name="pot_to_pay">Nog uit te betalen</string>
+    <string name="pot_open_heading">Met de teamkas</string>
+    <string name="pot_nothing_open">Niemand heeft nog iets openstaan bij de teamkas.</string>
+    <string name="treasurer">Penningmeester</string>
+    <string name="treasurer_none">Nog geen penningmeester gekozen.</string>
+    <string name="treasurer_no_iban">Nog geen IBAN bekend.</string>
+    <string name="treasurer_hint">De penningmeester bewaart het geld van de teamkas; inleg en boetes gaan naar dit IBAN.</string>
+    <string name="fine_king_heading">Boetekoning</string>
+    <string name="fine_count">%1$d×</string>
+
+    <!-- Boete geven / Inleg vragen -->
+    <string name="fine_give">Boete geven</string>
+    <string name="contribution_ask">Inleg vragen</string>
+    <string name="charge_who">Wie?</string>
+    <string name="fine_list">Boetelijst</string>
+    <!-- A line of the fine list as a button: "Te laat 2,00". -->
+    <string name="fine_list_option">%1$s %2$s</string>
+    <string name="contribution_amount">Bedrag per persoon</string>
+    <string name="contribution_placeholder">Inleg november</string>
+    <!-- "5 × € 25,00 = € 125,00" -->
+    <string name="charge_total">%1$d × %2$s = %3$s</string>
+
     <!-- Payment sheet -->
     <string name="settlement_sheet_title">Betaling</string>
     <string name="settlement_from">Van</string>
     <string name="settlement_to">Aan</string>
-    <string name="settlement_same_member">Kies twee verschillende leden.</string>
+    <string name="settlement_same_member">Kies twee verschillende teamleden.</string>
 
     <!-- Expense -->
     <string name="expense_add">Uitgave toevoegen</string>
     <string name="expense_edit">Uitgave bewerken</string>
     <string name="expense_delete_title">Uitgave verwijderen?</string>
-    <string name="expense_delete_text">De uitgave verdwijnt voor iedereen in de groep en de saldo\'s worden opnieuw berekend.</string>
+    <string name="expense_delete_text">De uitgave verdwijnt voor iedereen in het team en de saldo\'s worden opnieuw berekend.</string>
     <string name="split_mode_equal">Gelijk</string>
     <string name="split_mode_exact">Bedragen</string>
     <string name="split_mode_shares">Aandelen</string>
     <string name="split_mode_items">Per regel</string>
     <string name="split_per_person">Per persoon</string>
+    <string name="split_charged_to_pot">Ten laste van de teamkas: niemand betaalt mee.</string>
+    <string name="trip_calculate">Rit berekenen</string>
+    <string name="trip_kilometres">Kilometers</string>
+    <string name="trip_rate">Tarief per km</string>
+    <!-- "84 km × € 0,23 = € 19,32" -->
+    <string name="trip_result">%1$s km × %2$s = %3$s</string>
+    <string name="trip_fill_in">Invullen</string>
+    <!-- The description of a ride: "Rit (84 km)". -->
+    <string name="trip_description">Rit (%1$s km)</string>
     <string name="expense_total">TOTAAL</string>
     <string name="amount_none">–</string>
     <string name="amount_placeholder" translatable="false">0,00</string>
@@ -144,43 +206,52 @@
     <string name="scan_no_camera">Er is geen camera-app gevonden.</string>
     <string name="scan_no_lines">Er zijn geen regels op deze bon gevonden.</string>
 
-    <!-- Group settings -->
-    <string name="settings_title">Groepsinstellingen</string>
-    <string name="settings_group">Groep</string>
-    <string name="settings_color">Kleur</string>
-    <string name="settings_members">Leden</string>
-    <string name="settings_add_member">Lid toevoegen</string>
+    <!-- Team settings -->
+    <string name="settings_title">Teaminstellingen</string>
+    <string name="settings_team">Team</string>
+    <string name="settings_color">Markeerstift</string>
+    <string name="settings_members">Teamleden</string>
+    <string name="settings_add_member">Teamlid toevoegen</string>
     <string name="settings_rename_member">Naam wijzigen</string>
     <string name="settings_rename_member_named">Naam van %1$s wijzigen</string>
     <string name="settings_remove_member_named">%1$s verwijderen</string>
     <string name="settings_remove_member_title">%1$s verwijderen?</string>
-    <string name="settings_remove_member_text">Dit lid wordt uit de groep gehaald. Dat kan alleen als het in geen enkele uitgave staat.</string>
+    <string name="settings_remove_member_text">Dit teamlid wordt uit het team gehaald. Dat kan alleen als het in geen enkele uitgave, boete of inleg staat.</string>
     <string name="settings_invite">Uitnodigen</string>
     <string name="settings_invite_hint">Deel deze code of de link; wie hem heeft, kan deelnemen.</string>
     <string name="settings_share_invite">Deel uitnodiging</string>
-    <string name="settings_share_text">Doe mee met “%1$s” op Split: %2$s</string>
-    <string name="settings_leave">Groep verlaten</string>
-    <string name="settings_leave_title">Groep verlaten?</string>
-    <string name="settings_leave_text">Je ziet de groep daarna niet meer. Sta je in uitgaven, dan blijft je naam staan zodat de saldo\'s van de anderen kloppen.</string>
+    <string name="settings_share_text">Doe mee met “%1$s” op Split Sport: %2$s</string>
+    <string name="settings_leave">Team verlaten</string>
+    <string name="settings_leave_title">Team verlaten?</string>
+    <string name="settings_leave_text">Je ziet het team daarna niet meer. Sta je in uitgaven, dan blijft je naam staan zodat de saldo\'s van de anderen kloppen.</string>
+
+    <string name="fine_list_empty">Nog geen boetes op de lijst. Voeg de eerste toe.</string>
+    <string name="fine_list_add">Boete toevoegen</string>
+    <string name="fine_list_change">Boete wijzigen</string>
+    <string name="fine_list_placeholder">Te laat</string>
+    <string name="fine_list_change_named">%1$s wijzigen</string>
+    <string name="fine_list_remove_named">%1$s van de boetelijst halen</string>
+    <string name="fine_list_remove_title">%1$s van de boetelijst halen?</string>
+    <string name="fine_list_remove_text">Boetes die al gegeven zijn, blijven staan.</string>
 
     <!-- Join -->
     <string name="join_title">Deelnemen</string>
     <string name="join_code">Code</string>
     <string name="join_code_hint">De 8 tekens uit de uitnodiging, of plak de link.</string>
-    <string name="join_look_up">Groep zoeken</string>
+    <string name="join_look_up">Team zoeken</string>
     <string name="join_action">Deelnemen</string>
-    <string name="join_open_group">Groep openen</string>
-    <string name="join_already_member">Je bent al lid van deze groep.</string>
+    <string name="join_open_group">Team openen</string>
+    <string name="join_already_member">Je zit al in dit team.</string>
     <string name="join_who_are_you">Wie ben jij?</string>
-    <string name="join_who_are_you_hint">Sta je al in de groep? Kies je naam en je neemt dat saldo over.</string>
+    <string name="join_who_are_you_hint">Sta je al in het team? Kies je naam en je neemt dat saldo over.</string>
     <string name="join_not_listed">Ik sta er niet tussen</string>
 
     <!-- Profile -->
     <string name="profile_title">Profiel</string>
-    <string name="profile_iban_hint">Zodat anderen weten waar ze kunnen betalen.</string>
+    <string name="profile_iban_hint">Zodat teamgenoten weten waar ze kunnen betalen.</string>
     <string name="profile_saved">Opgeslagen</string>
     <string name="profile_logout">Uitloggen</string>
     <string name="profile_delete">Account verwijderen</string>
     <string name="profile_delete_title">Account verwijderen?</string>
-    <string name="profile_delete_text">Je account wordt definitief verwijderd en je verlaat al je groepen. Dit kan niet ongedaan worden gemaakt.</string>
+    <string name="profile_delete_text">Je account wordt definitief verwijderd en je verlaat al je teams. Dit kan niet ongedaan worden gemaakt.</string>
 </resources>

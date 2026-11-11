@@ -1,7 +1,8 @@
 import SplitKit
 import SwiftUI
 
-/// Group settings: rename, colour, members, invitation and leaving the group.
+/// Team settings: name, sport, club, season, highlighter, penningmeester, the
+/// fine list, team members, invitation and leaving the team.
 @MainActor
 struct GroupSettingsSheet: View {
     let onLeave: () -> Void
@@ -19,23 +20,25 @@ struct GroupSettingsSheet: View {
     var body: some View {
         NavigationStack {
             Desk {
-                nameReceipt
+                teamReceipt
                 Receipt {
-                    ReceiptTitle(text: "Kleur")
+                    ReceiptTitle(text: "Markeerstift")
                     HighlighterPicker(selection: colorBinding)
                 }
+                potReceipt
+                FineListReceipt(model: model)
                 membersReceipt
                 inviteReceipt
                 if let message = model.errorMessage {
                     ErrorBanner(message: message)
                 }
-                Button("Groep verlaten") {
+                Button("Team verlaten") {
                     isConfirmingLeave = true
                 }
                 .buttonStyle(PaperButtonStyle(kind: .destructive))
                 .disabled(model.isWorking)
             }
-            .navigationTitle("Groepsinstellingen")
+            .navigationTitle("Teaminstellingen")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -43,7 +46,7 @@ struct GroupSettingsSheet: View {
                         .font(.buttonLabel)
                 }
             }
-            .alert("Lid hernoemen", isPresented: isRenaming) {
+            .alert("Teamlid hernoemen", isPresented: isRenaming) {
                 TextField("Naam", text: $renameText)
                 Button("Opslaan") {
                     if let member = memberToRename {
@@ -55,36 +58,51 @@ struct GroupSettingsSheet: View {
                     memberToRename = nil
                 }
             }
-            .confirmationDialog("Groep verlaten?", isPresented: $isConfirmingLeave, titleVisibility: .visible) {
-                Button("Verlaat groep", role: .destructive) {
+            .confirmationDialog("Team verlaten?", isPresented: $isConfirmingLeave, titleVisibility: .visible) {
+                Button("Verlaat team", role: .destructive) {
                     Task { await leave() }
                 }
                 Button("Annuleren", role: .cancel) {}
             } message: {
-                Text("Je uitgaven blijven in de groep staan, zodat de saldo's van de anderen kloppen.")
+                Text("Je uitgaven blijven in het team staan, zodat de saldo's van de anderen kloppen.")
             }
         }
     }
 
-    private var nameReceipt: some View {
+    /// Name, sport, club and season.
+    private var teamReceipt: some View {
         Receipt {
             PaperField(label: "Naam", text: $model.name)
+            SportMenu(selection: sportBinding)
+            PaperField(label: "Vereniging (mag leeg blijven)", text: $model.club)
+            PaperField(label: "Seizoen", text: $model.season)
             Button("Opslaan") {
-                Task { await model.saveName() }
+                Task { await model.saveDetails() }
             }
             .buttonStyle(PaperButtonStyle(isCompact: true))
-            .disabled(!model.canSaveName)
+            .disabled(!model.canSaveDetails)
+        }
+    }
+
+    /// Who keeps the pot's money.
+    private var potReceipt: some View {
+        Receipt {
+            ReceiptTitle(text: "Teamkas")
+            MemberMenu(label: "Penningmeester", members: model.treasurerCandidates, selection: treasurerBinding)
+            Text("De penningmeester beheert het geld van de teamkas. Inleg en boetes worden naar zijn of haar IBAN overgemaakt.")
+                .font(.tillSmall)
+                .foregroundStyle(Theme.mutedInk)
         }
     }
 
     private var membersReceipt: some View {
         Receipt {
-            ReceiptTitle(text: "Leden")
+            ReceiptTitle(text: "Teamleden")
             ForEach(model.memberRows) { row in
                 memberRow(row)
             }
             Perforation()
-            PaperField(label: "Nieuw lid", text: $model.newMemberName, kind: .name)
+            PaperField(label: "Nieuw teamlid", text: $model.newMemberName, kind: .name)
             Button("Voeg toe") {
                 Task { await model.addMember() }
             }
@@ -101,7 +119,7 @@ struct GroupSettingsSheet: View {
             }
             .font(.tillBold)
             .textSelection(.enabled)
-            Text("Iedereen met de link of de code kan deelnemen aan deze groep.")
+            Text("Iedereen met de link of de code kan deelnemen aan dit team.")
                 .font(.tillSmall)
                 .foregroundStyle(Theme.mutedInk)
             ShareLink(item: model.inviteURL) {
@@ -113,7 +131,7 @@ struct GroupSettingsSheet: View {
 
     private func memberRow(_ row: GroupSettingsViewModel.MemberRow) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Highlight(name: row.name, color: row.color)
+            PartyName(party: row.party)
             if row.isMe {
                 Text("(jij)")
                     .font(.tillSmall)
@@ -130,11 +148,11 @@ struct GroupSettingsSheet: View {
         .frame(minHeight: 32)
     }
 
-    /// Rename or remove: only offered for members without an account.
+    /// Rename or remove: only offered for team members without an account.
     private func memberMenu(_ row: GroupSettingsViewModel.MemberRow) -> some View {
         Menu {
             Button {
-                renameText = row.name
+                renameText = row.party.name
                 memberToRename = row
             } label: {
                 Label("Hernoem", systemImage: "pencil")
@@ -149,7 +167,7 @@ struct GroupSettingsSheet: View {
                 .frame(width: 32, height: 32)
                 .contentShape(Rectangle())
         }
-        .accessibilityLabel("Acties voor \(row.name)")
+        .accessibilityLabel("Acties voor \(row.party.name)")
     }
 
     private func leave() async {
@@ -164,6 +182,24 @@ struct GroupSettingsSheet: View {
             get: { model.detail.color },
             set: { color in
                 Task { await model.setColor(color) }
+            }
+        )
+    }
+
+    private var sportBinding: Binding<Sport> {
+        Binding(
+            get: { model.detail.sport },
+            set: { sport in
+                Task { await model.setSport(sport) }
+            }
+        )
+    }
+
+    private var treasurerBinding: Binding<String> {
+        Binding(
+            get: { model.detail.treasurerMemberId ?? "" },
+            set: { memberId in
+                Task { await model.setTreasurer(memberId: memberId) }
             }
         )
     }
