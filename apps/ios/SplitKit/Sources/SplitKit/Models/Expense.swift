@@ -1,7 +1,9 @@
 import Foundation
 
+/// `fine` and `contribution` are charges: the pot is the payer and every listed
+/// member owes it their share. No money moves until they pay the pot.
 public enum ExpenseKind: String, Codable, Sendable {
-    case expense, settlement
+    case expense, settlement, fine, contribution
 }
 
 public enum SplitMode: String, Codable, CaseIterable, Sendable {

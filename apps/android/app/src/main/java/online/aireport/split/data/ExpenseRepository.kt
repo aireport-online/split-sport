@@ -3,6 +3,8 @@ package online.aireport.split.data
 import java.time.LocalDate
 import online.aireport.split.core.Split
 import online.aireport.split.data.api.ApiGateway
+import online.aireport.split.data.model.ChargeRequest
+import online.aireport.split.data.model.ChargeType
 import online.aireport.split.data.model.Expense
 import online.aireport.split.data.model.ExpenseRequest
 import online.aireport.split.data.model.SettlementRequest
@@ -17,12 +19,12 @@ data class ExpenseInput(
     val split: Split,
 )
 
-/** Expenses and settlements of a group. */
+/** Expenses, payments, fines and contributions of a team. */
 class ExpenseRepository(
     private val gateway: ApiGateway,
     private val changes: GroupChanges,
 ) {
-    /** Newest date first, settlements included. */
+    /** Everything that happened, newest date first. */
     suspend fun expenses(groupId: String): List<Expense> = gateway.call { expenses(groupId) }.expenses
 
     suspend fun expense(groupId: String, expenseId: String): Expense = gateway.call { expense(groupId, expenseId) }
@@ -33,13 +35,13 @@ class ExpenseRepository(
     suspend fun updateExpense(groupId: String, expenseId: String, input: ExpenseInput): Expense =
         gateway.call { updateExpense(groupId, expenseId, input.toRequest()) }.also { changes.notifyChanged() }
 
-    /** Deletes an expense or a settlement. */
+    /** Deletes an expense, a payment, a fine or a contribution. */
     suspend fun deleteExpense(groupId: String, expenseId: String) {
         gateway.call { deleteExpense(groupId, expenseId) }
         changes.notifyChanged()
     }
 
-    /** Records that [fromMemberId] paid [toMemberId] back. */
+    /** Records that [fromMemberId] paid [toMemberId]; either may be the pot. */
     suspend fun settle(
         groupId: String,
         fromMemberId: String,
@@ -49,6 +51,22 @@ class ExpenseRepository(
     ): Expense =
         gateway.call {
             createSettlement(groupId, SettlementRequest(fromMemberId, toMemberId, amountCents, date.toString()))
+        }.also { changes.notifyChanged() }
+
+    /**
+     * Charges [memberIds] a fine or a contribution of [amountCents] each. Nothing is paid yet:
+     * they now owe the pot.
+     */
+    suspend fun charge(
+        groupId: String,
+        type: ChargeType,
+        description: String,
+        amountCents: Long,
+        memberIds: List<String>,
+        date: LocalDate,
+    ): Expense =
+        gateway.call {
+            createCharge(groupId, ChargeRequest(type, description.trim(), amountCents, memberIds, date.toString()))
         }.also { changes.notifyChanged() }
 
     private fun ExpenseInput.toRequest() = ExpenseRequest(

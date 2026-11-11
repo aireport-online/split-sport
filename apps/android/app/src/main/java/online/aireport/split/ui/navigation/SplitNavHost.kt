@@ -10,7 +10,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import online.aireport.split.data.model.ChargeType
 import online.aireport.split.ui.auth.AuthRoute
+import online.aireport.split.ui.charge.ChargeRoute
 import online.aireport.split.ui.expense.ExpenseRoute
 import online.aireport.split.ui.group.GroupRoute
 import online.aireport.split.ui.groups.GroupsRoute
@@ -60,6 +62,8 @@ fun SplitNavHost(isSignedIn: Boolean, pendingInviteCode: String?, onInviteHandle
                 onOpenSettings = { navController.navigate(GroupSettingsDestination(groupId)) },
                 onAddExpense = { navController.navigate(ExpenseDestination(groupId)) },
                 onEditExpense = { expenseId -> navController.navigate(ExpenseDestination(groupId, expenseId)) },
+                onGiveFine = { navController.navigate(ChargeDestination(groupId, ChargeType.FINE)) },
+                onAskContribution = { navController.navigate(ChargeDestination(groupId, ChargeType.CONTRIBUTION)) },
             )
         }
 
@@ -78,6 +82,11 @@ fun SplitNavHost(isSignedIn: Boolean, pendingInviteCode: String?, onInviteHandle
                 expenseId = destination.expenseId,
                 onDone = navController::goBack,
             )
+        }
+
+        composable<ChargeDestination> { entry ->
+            val destination = entry.toRoute<ChargeDestination>()
+            ChargeRoute(groupId = destination.groupId, type = destination.type, onDone = navController::goBack)
         }
 
         composable<JoinDestination> { entry ->

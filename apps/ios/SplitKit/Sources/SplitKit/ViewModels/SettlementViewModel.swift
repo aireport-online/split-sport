@@ -1,11 +1,12 @@
 import Foundation
 import Observation
 
-/// "Betaling": records that one member paid another back.
+/// "Betaling": records that a member paid another member, or the Teamkas, or the other way round.
 @MainActor
 @Observable
 public final class SettlementViewModel {
-    public let members: [Member]
+    /// Who can pay or be paid: the team members and the Teamkas.
+    public let members: [Party]
     public var fromMemberId: String
     public var toMemberId: String
     public var amountText: String
@@ -20,7 +21,7 @@ public final class SettlementViewModel {
     public init(api: SplitAPI, group: GroupDetail, transfer: Transfer?, today: CalendarDay = .today()) {
         self.api = api
         self.groupId = group.id
-        self.members = group.members
+        self.members = group.parties
         self.date = today
         if let transfer {
             fromMemberId = transfer.fromMemberId

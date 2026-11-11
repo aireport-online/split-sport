@@ -1,6 +1,7 @@
 package online.aireport.split.ui.navigation
 
 import kotlinx.serialization.Serializable
+import online.aireport.split.data.model.ChargeType
 
 @Serializable
 data object AuthDestination
@@ -18,7 +19,11 @@ data class GroupSettingsDestination(val groupId: String)
 @Serializable
 data class ExpenseDestination(val groupId: String, val expenseId: String? = null)
 
-/** Joins a group; [code] is filled in when arriving by link. */
+/** "Boete geven" or "Inleg vragen" for a team. */
+@Serializable
+data class ChargeDestination(val groupId: String, val type: ChargeType)
+
+/** Joins a team; [code] is filled in when arriving by link. */
 @Serializable
 data class JoinDestination(val code: String? = null)
 

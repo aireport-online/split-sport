@@ -7,10 +7,13 @@ public enum InviteLink {
         server.appendingPathComponent("join").appendingPathComponent(code)
     }
 
-    /// The code in `split://join/<code>` or `https://<server>/join/<code>`; nil for any other URL.
+    /// The app's own URL scheme. Split Sport has its own, so it can be installed next to Split.
+    public static let appScheme = "splitsport"
+
+    /// The code in `splitsport://join/<code>` or `https://<server>/join/<code>`; nil for any other URL.
     public static func code(from url: URL) -> String? {
         var parts = url.pathComponents.filter { $0 != "/" }
-        if url.scheme?.lowercased() == "split", let host = url.host {
+        if url.scheme?.lowercased() == appScheme, let host = url.host {
             parts.insert(host, at: 0)
         }
         guard let joinAt = parts.lastIndex(where: { $0.lowercased() == "join" }), joinAt + 1 < parts.count else {

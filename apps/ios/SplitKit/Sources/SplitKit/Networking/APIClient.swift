@@ -64,20 +64,35 @@ public struct APIClient: SplitAPI {
         return list.groups
     }
 
-    public func createGroup(name: String, color: GroupColor?) async throws -> GroupDetail {
-        try await send("POST", "groups", body: GroupBody(name: name, color: color))
+    public func createGroup(
+        name: String, color: GroupColor?, sport: Sport, club: String, season: String
+    ) async throws -> GroupDetail {
+        let body = GroupPatch(name: name, color: color, sport: sport, club: club, season: season)
+        return try await send("POST", "groups", body: body)
     }
 
     public func group(id: String) async throws -> GroupDetail {
         try await send("GET", "groups/\(id)")
     }
 
-    public func updateGroup(id: String, name: String?, color: GroupColor?) async throws -> GroupDetail {
-        try await send("PATCH", "groups/\(id)", body: GroupBody(name: name, color: color))
+    public func updateGroup(id: String, patch: GroupPatch) async throws -> GroupDetail {
+        try await send("PATCH", "groups/\(id)", body: patch)
     }
 
     public func leaveGroup(id: String) async throws {
         try await sendWithoutResult("POST", "groups/\(id)/leave")
+    }
+
+    public func addFine(groupId: String, name: String, amountCents: Int) async throws -> GroupDetail {
+        try await send("POST", "groups/\(groupId)/fines", body: FineBody(name: name, amountCents: amountCents))
+    }
+
+    public func updateFine(groupId: String, fineId: String, name: String, amountCents: Int) async throws -> GroupDetail {
+        try await send("PUT", "groups/\(groupId)/fines/\(fineId)", body: FineBody(name: name, amountCents: amountCents))
+    }
+
+    public func removeFine(groupId: String, fineId: String) async throws -> GroupDetail {
+        try await send("DELETE", "groups/\(groupId)/fines/\(fineId)")
     }
 
     public func addMember(groupId: String, name: String) async throws -> GroupDetail {
@@ -119,6 +134,10 @@ public struct APIClient: SplitAPI {
 
     public func deleteExpense(groupId: String, expenseId: String) async throws {
         try await sendWithoutResult("DELETE", "groups/\(groupId)/expenses/\(expenseId)")
+    }
+
+    public func createCharge(groupId: String, input: ChargeInput) async throws -> Expense {
+        try await send("POST", "groups/\(groupId)/charges", body: input)
     }
 
     public func createSettlement(groupId: String, input: SettlementInput) async throws -> Expense {
@@ -228,10 +247,9 @@ private struct UpdateMeBody: Encodable {
     let iban: String
 }
 
-/// Nil fields are left out, which the server reads as "do not change".
-private struct GroupBody: Encodable {
-    let name: String?
-    let color: GroupColor?
+private struct FineBody: Encodable {
+    let name: String
+    let amountCents: Int
 }
 
 private struct NameBody: Encodable {

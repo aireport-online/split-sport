@@ -6,7 +6,15 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class ExpenseKind {
     @SerialName("expense") EXPENSE,
+
+    /** A payment between two members, one of which may be the pot. */
     @SerialName("settlement") SETTLEMENT,
+
+    /** A charge: the pot is the payer and every listed member owes it the amount. */
+    @SerialName("fine") FINE,
+
+    /** A charge like a fine, asked of everyone: "inleg". */
+    @SerialName("contribution") CONTRIBUTION,
 }
 
 @Serializable
@@ -29,12 +37,12 @@ data class Expense(
     val kind: ExpenseKind,
     val description: String,
     val amountCents: Long,
-    /** Member that paid. For a settlement: the member that paid back. */
+    /** Member that paid. Settlement: who paid. Fine and contribution: always the pot. */
     val paidById: String,
     /** Calendar date, `YYYY-MM-DD`. */
     val date: String,
     val splitMode: SplitModeDto,
-    /** What every participant owes. For a settlement: one share for the receiver. */
+    /** What every participant owes. Settlement: one share, the receiver. Charge: one per charged member. */
     val shares: List<ExpenseShare>,
     /** Receipt lines, only for split mode "items". */
     val items: List<ExpenseItem> = emptyList(),
@@ -76,5 +84,21 @@ data class SettlementRequest(
     val fromMemberId: String,
     val toMemberId: String,
     val amountCents: Long,
+    val date: String,
+)
+
+@Serializable
+enum class ChargeType {
+    @SerialName("fine") FINE,
+    @SerialName("contribution") CONTRIBUTION,
+}
+
+/** A fine or a contribution; [amountCents] is the amount per member. */
+@Serializable
+data class ChargeRequest(
+    val type: ChargeType,
+    val description: String,
+    val amountCents: Long,
+    val memberIds: List<String>,
     val date: String,
 )

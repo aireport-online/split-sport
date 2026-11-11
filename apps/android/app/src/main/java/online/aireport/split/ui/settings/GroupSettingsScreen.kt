@@ -51,7 +51,7 @@ import online.aireport.split.ui.components.LoadingState
 import online.aireport.split.ui.components.MAX_NAME_LENGTH
 import online.aireport.split.ui.components.MessageEffect
 import online.aireport.split.ui.components.NameDialog
-import online.aireport.split.ui.components.PersonLabel
+import online.aireport.split.ui.components.MemberLabel
 import online.aireport.split.ui.components.Pill
 import online.aireport.split.ui.components.PrimaryButton
 import online.aireport.split.ui.components.Receipt
@@ -262,7 +262,7 @@ private fun MemberRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PersonLabel(member, position, myMemberId, Modifier.weight(1f, fill = false))
+            MemberLabel(member, position, myMemberId, Modifier.weight(1f, fill = false))
             if (member.userId == null) Pill(stringResource(R.string.member_no_account))
         }
         // Only members without an account can be renamed or removed by others.

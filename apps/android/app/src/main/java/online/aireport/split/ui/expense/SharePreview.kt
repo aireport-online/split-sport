@@ -16,7 +16,8 @@ import online.aireport.split.R
 import online.aireport.split.core.formatAmount
 import online.aireport.split.core.formatCents
 import online.aireport.split.data.model.GroupDetail
-import online.aireport.split.ui.components.PersonLabel
+import online.aireport.split.ui.components.MemberLabel
+import online.aireport.split.ui.components.MemberName
 import online.aireport.split.ui.components.ReceiptLine
 import online.aireport.split.ui.components.ReceiptPadding
 import online.aireport.split.ui.theme.SplitTheme
@@ -44,13 +45,13 @@ fun SharePreview(preview: SplitPreview, group: GroupDetail, modifier: Modifier =
             )
             is SplitPreview.Valid -> {
                 preview.shares.forEach { share ->
-                    val member = group.member(share.memberId)
                     ReceiptLine(
                         name = {
+                            val member = group.member(share.memberId)
                             if (member != null) {
-                                PersonLabel(member, group.memberPosition(member.id), group.myMemberId)
+                                MemberLabel(member, group.memberPosition(member.id), group.myMemberId)
                             } else {
-                                Text(stringResource(R.string.member_unknown), style = MaterialTheme.typography.bodyLarge)
+                                MemberName(group, memberId = null)
                             }
                         },
                         amount = { Text(formatAmount(share.amountCents), style = MaterialTheme.typography.bodyLarge) },

@@ -17,13 +17,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import online.aireport.split.R
 import online.aireport.split.data.model.GroupColor
+import online.aireport.split.data.model.GroupDetail
+import online.aireport.split.data.model.Member
 import online.aireport.split.ui.theme.SplitTheme
 
 private val Overhang = 6.dp
@@ -53,7 +57,7 @@ fun Modifier.highlighter(color: Color, seed: Int): Modifier = drawBehind {
 
 /**
  * A person: never an avatar, but their name with their highlighter swiped behind it. [position]
- * is the member's position in the group, which decides the colour. The stroke sticks out 6 dp
+ * is the member's position in the team, which decides the colour. The stroke sticks out 6 dp
  * left and right of the name.
  */
 @Composable
@@ -64,12 +68,58 @@ fun PersonName(
     style: TextStyle = MaterialTheme.typography.bodyLarge,
 ) {
     val colors = SplitTheme.colors
+    StrokedName(name, colors.memberHighlighter(position), colors.onHighlighter, modifier, style)
+}
+
+/**
+ * The team pot. It is not a person, so it has no highlighter: its name is printed as a label,
+ * on-ink text on an ink stroke of the same shape.
+ */
+@Composable
+fun PotName(
+    name: String,
+    modifier: Modifier = Modifier,
+    style: TextStyle = MaterialTheme.typography.bodyLarge,
+) {
+    val colors = SplitTheme.colors
+    StrokedName(name, colors.ink, colors.onInk, modifier, style)
+}
+
+/** A member of the team by name: a person with their highlighter, or the pot as its ink label. */
+@Composable
+fun MemberName(
+    member: Member,
+    position: Int,
+    modifier: Modifier = Modifier,
+    style: TextStyle = MaterialTheme.typography.bodyLarge,
+) {
+    if (member.isPot) PotName(member.name, modifier, style) else PersonName(member.name, position, modifier, style)
+}
+
+/** The member with [memberId] in [group] by name; "Onbekend" when there is no such member. */
+@Composable
+fun MemberName(
+    group: GroupDetail,
+    memberId: String?,
+    modifier: Modifier = Modifier,
+    style: TextStyle = MaterialTheme.typography.bodyLarge,
+) {
+    val member = memberId?.let(group::member)
+    if (member != null) {
+        MemberName(member, group.memberPosition(member.id), modifier, style)
+    } else {
+        Text(stringResource(R.string.member_unknown), modifier, style = style, maxLines = 1)
+    }
+}
+
+@Composable
+private fun StrokedName(name: String, stroke: Color, textColor: Color, modifier: Modifier, style: TextStyle) {
     Text(
         text = name,
         modifier = modifier
-            .highlighter(colors.memberHighlighter(position), seed = name.hashCode())
+            .highlighter(stroke, seed = name.hashCode())
             .padding(horizontal = Overhang),
-        color = colors.onHighlighter,
+        color = textColor,
         style = style,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -77,7 +127,7 @@ fun PersonName(
 }
 
 /**
- * A group's name, underlined with a thick stroke of the group's highlighter. On light paper
+ * A team's name, underlined with a thick stroke of the group's highlighter. On light paper
  * the stroke runs behind the lower part of the letters; on dark paper light letters would
  * be unreadable on it, so there it sits just below them.
  */

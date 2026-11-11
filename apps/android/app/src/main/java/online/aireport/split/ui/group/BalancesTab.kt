@@ -1,54 +1,49 @@
 package online.aireport.split.ui.group
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import online.aireport.split.R
 import online.aireport.split.core.formatAmount
-import online.aireport.split.core.formatCents
-import online.aireport.split.core.formatIban
 import online.aireport.split.core.formatSignedAmount
+import online.aireport.split.data.model.FineStat
 import online.aireport.split.data.model.GroupDetail
 import online.aireport.split.data.model.Member
 import online.aireport.split.data.model.Transfer
+import online.aireport.split.ui.components.MemberLabel
+import online.aireport.split.ui.components.MemberName
 import online.aireport.split.ui.components.Perforation
-import online.aireport.split.ui.components.PersonLabel
-import online.aireport.split.ui.components.PersonName
 import online.aireport.split.ui.components.Pill
 import online.aireport.split.ui.components.Receipt
 import online.aireport.split.ui.components.ReceiptPadding
-import online.aireport.split.ui.components.SecondaryButton
+import online.aireport.split.ui.components.Stamp
 import online.aireport.split.ui.components.balanceColor
 import online.aireport.split.ui.components.memberBalancePhrase
 import online.aireport.split.ui.theme.SplitTheme
 
-/** Every member's balance, and under "Vereffenen" the payments that would settle the group. */
+/**
+ * What team members have among each other: everyone's balance, under "Vereffenen" the payments
+ * between members that would settle it, and the fine ranking.
+ */
 @Composable
 fun BalancesTab(group: GroupDetail, onMarkAsPaid: (Transfer) -> Unit, onCopyIban: (String) -> Unit) {
-    val balances = group.balances.associate { it.memberId to it.balanceCents }
+    val peerBalances = group.balances.associate { it.memberId to it.peerCents }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
@@ -57,15 +52,16 @@ fun BalancesTab(group: GroupDetail, onMarkAsPaid: (Transfer) -> Unit, onCopyIban
         item(key = "balances") {
             Receipt(Modifier.fillMaxWidth()) {
                 ReceiptTitle(stringResource(R.string.group_tab_balances))
-                group.members.forEachIndexed { position, member ->
-                    MemberBalanceRow(member, position, group.myMemberId, balances[member.id] ?: 0L)
+                group.players.forEach { member ->
+                    MemberBalanceRow(member, group.memberPosition(member.id), group.myMemberId, peerBalances[member.id] ?: 0L)
                 }
             }
         }
         item(key = "settle") {
             Receipt(Modifier.fillMaxWidth()) {
                 ReceiptTitle(stringResource(R.string.settle_heading))
-                if (group.transfers.isEmpty()) {
+                val transfers = group.peerTransfers
+                if (transfers.isEmpty()) {
                     Text(
                         text = stringResource(R.string.settle_everyone_square),
                         modifier = Modifier.padding(start = ReceiptPadding, end = ReceiptPadding, bottom = 16.dp),
@@ -73,24 +69,21 @@ fun BalancesTab(group: GroupDetail, onMarkAsPaid: (Transfer) -> Unit, onCopyIban
                         color = SplitTheme.colors.mutedInk,
                     )
                 }
-                group.transfers.forEachIndexed { index, transfer ->
+                transfers.forEachIndexed { index, transfer ->
                     if (index > 0) Perforation(Modifier.padding(horizontal = ReceiptPadding))
-                    TransferRow(transfer, group, onMarkAsPaid, onCopyIban)
+                    TransferRow(transfer, group, showReceiverIban = true, onMarkAsPaid, onCopyIban)
+                }
+            }
+        }
+        if (group.fineStats.isNotEmpty()) {
+            item(key = "fines") {
+                Receipt(Modifier.fillMaxWidth()) {
+                    ReceiptTitle(stringResource(R.string.fine_king_heading))
+                    group.fineStats.forEachIndexed { rank, stat -> FineKingRow(stat, group, isKing = rank == 0) }
                 }
             }
         }
     }
-}
-
-@Composable
-private fun ReceiptTitle(text: String) {
-    Text(
-        text = text,
-        modifier = Modifier
-            .padding(start = ReceiptPadding, end = ReceiptPadding, top = 16.dp, bottom = 6.dp)
-            .semantics { heading() },
-        style = MaterialTheme.typography.titleLarge,
-    )
 }
 
 @Composable
@@ -110,7 +103,7 @@ private fun MemberBalanceRow(member: Member, position: Int, myMemberId: String, 
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PersonLabel(member, position, myMemberId, Modifier.weight(1f, fill = false))
+            MemberLabel(member, position, myMemberId, Modifier.weight(1f, fill = false))
             if (member.userId == null) Pill(stringResource(R.string.member_no_account))
         }
         Text(
@@ -124,63 +117,38 @@ private fun MemberBalanceRow(member: Member, position: Int, myMemberId: String, 
     }
 }
 
+/** A line of the fine ranking: the name, "3×" and the total; the first one is stamped "KONING". */
 @Composable
-private fun TransferRow(
-    transfer: Transfer,
-    group: GroupDetail,
-    onMarkAsPaid: (Transfer) -> Unit,
-    onCopyIban: (String) -> Unit,
-) {
-    val fromName = group.memberName(transfer.fromMemberId)
-    val toName = group.memberName(transfer.toMemberId)
-    val sentence = stringResource(R.string.settle_transfer, fromName, toName, formatCents(transfer.amountCents))
-    val receiverIban = group.member(transfer.toMemberId)?.iban
-
-    Column(
-        modifier = Modifier.padding(start = ReceiptPadding, end = ReceiptPadding, top = 14.dp, bottom = 8.dp),
+private fun FineKingRow(stat: FineStat, group: GroupDetail, isKing: Boolean) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 40.dp)
+            .padding(horizontal = ReceiptPadding)
+            .semantics(mergeDescendants = true) {},
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
-            // Spoken as the sentence "Bas betaalt Anna € 3,33".
-            modifier = Modifier.clearAndSetSemantics { contentDescription = sentence },
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                PersonName(fromName, group.memberPosition(transfer.fromMemberId), Modifier.weight(1f, fill = false))
-                Text("→", style = MaterialTheme.typography.bodyLarge)
-                PersonName(toName, group.memberPosition(transfer.toMemberId), Modifier.weight(1f, fill = false))
-            }
-            Text(formatAmount(transfer.amountCents), style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+            MemberName(group, stat.memberId, Modifier.weight(1f, fill = false))
+            if (isKing) Stamp(stringResource(R.string.stamp_king))
         }
-        if (receiverIban != null) {
-            // The whole line copies the IBAN.
-            Row(
-                modifier = Modifier
-                    .clip(MaterialTheme.shapes.small)
-                    .clickable(onClickLabel = stringResource(R.string.iban_copy), role = Role.Button) {
-                        onCopyIban(receiverIban)
-                    }
-                    .heightIn(min = 48.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(R.string.iban_value, formatIban(receiverIban)),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = SplitTheme.colors.mutedInk,
-                )
-                Icon(
-                    painter = painterResource(R.drawable.ic_copy),
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = SplitTheme.colors.mutedInk,
-                )
-            }
-        }
-        SecondaryButton(stringResource(R.string.settle_mark_paid), onClick = { onMarkAsPaid(transfer) }, small = true)
+        Text(
+            text = stringResource(R.string.fine_count, stat.count),
+            style = MaterialTheme.typography.bodyLarge,
+            color = SplitTheme.colors.mutedInk,
+            maxLines = 1,
+        )
+        Text(
+            text = formatAmount(stat.totalCents),
+            modifier = Modifier.widthIn(min = 56.dp),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+        )
     }
 }

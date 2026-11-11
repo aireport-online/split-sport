@@ -1,10 +1,12 @@
 package online.aireport.split.data.api
 
 import online.aireport.split.data.model.AuthResponse
+import online.aireport.split.data.model.ChargeRequest
 import online.aireport.split.data.model.CreateGroupRequest
 import online.aireport.split.data.model.Expense
 import online.aireport.split.data.model.ExpenseList
 import online.aireport.split.data.model.ExpenseRequest
+import online.aireport.split.data.model.FineRequest
 import online.aireport.split.data.model.GroupDetail
 import online.aireport.split.data.model.GroupList
 import online.aireport.split.data.model.InvitePreview
@@ -27,7 +29,7 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 
-/** The Split REST API, see `docs/api.md`. Paths are relative to `<server>/api/`. */
+/** The Split Sport REST API, see `docs/api.md`. Paths are relative to `<server>/api/`. */
 interface SplitApi {
     @GET("config")
     suspend fun config(): ServerConfig
@@ -61,6 +63,19 @@ interface SplitApi {
 
     @PATCH("groups/{groupId}")
     suspend fun updateGroup(@Path("groupId") groupId: String, @Body body: UpdateGroupRequest): GroupDetail
+
+    @POST("groups/{groupId}/fines")
+    suspend fun addFine(@Path("groupId") groupId: String, @Body body: FineRequest): GroupDetail
+
+    @PUT("groups/{groupId}/fines/{fineId}")
+    suspend fun updateFine(
+        @Path("groupId") groupId: String,
+        @Path("fineId") fineId: String,
+        @Body body: FineRequest,
+    ): GroupDetail
+
+    @DELETE("groups/{groupId}/fines/{fineId}")
+    suspend fun removeFine(@Path("groupId") groupId: String, @Path("fineId") fineId: String): GroupDetail
 
     @POST("groups/{groupId}/leave")
     suspend fun leaveGroup(@Path("groupId") groupId: String)
@@ -102,6 +117,9 @@ interface SplitApi {
 
     @DELETE("groups/{groupId}/expenses/{expenseId}")
     suspend fun deleteExpense(@Path("groupId") groupId: String, @Path("expenseId") expenseId: String)
+
+    @POST("groups/{groupId}/charges")
+    suspend fun createCharge(@Path("groupId") groupId: String, @Body body: ChargeRequest): Expense
 
     @POST("groups/{groupId}/settlements")
     suspend fun createSettlement(@Path("groupId") groupId: String, @Body body: SettlementRequest): Expense
