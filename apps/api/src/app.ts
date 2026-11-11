@@ -12,8 +12,10 @@ import { HttpError } from "./errors";
 import { clientIp, rateLimit } from "./rate-limit";
 import type { ReceiptScanner } from "./receipts";
 import {
+  chargeSchema,
   createGroupSchema,
   expenseSchema,
+  fineSchema,
   joinSchema,
   loginSchema,
   memberNameSchema,
@@ -169,6 +171,29 @@ export function createApp(options: AppOptions): Hono<AppEnv> {
     return c.json(store.groupDetail(groupId, c.get("user").id));
   });
 
+  // ---- fine list ----------------------------------------------------------
+
+  api.post("/groups/:groupId/fines", auth, async (c) => {
+    const groupId = c.req.param("groupId");
+    store.requireMembership(groupId, c.get("user").id);
+    store.addFine(groupId, await body(c, fineSchema));
+    return c.json(store.groupDetail(groupId, c.get("user").id), 201);
+  });
+
+  api.put("/groups/:groupId/fines/:fineId", auth, async (c) => {
+    const groupId = c.req.param("groupId");
+    store.requireMembership(groupId, c.get("user").id);
+    store.updateFine(groupId, c.req.param("fineId"), await body(c, fineSchema));
+    return c.json(store.groupDetail(groupId, c.get("user").id));
+  });
+
+  api.delete("/groups/:groupId/fines/:fineId", auth, (c) => {
+    const groupId = c.req.param("groupId");
+    store.requireMembership(groupId, c.get("user").id);
+    store.removeFine(groupId, c.req.param("fineId"));
+    return c.json(store.groupDetail(groupId, c.get("user").id));
+  });
+
   api.post("/groups/:groupId/leave", auth, (c) => {
     store.leaveGroup(c.req.param("groupId"), c.get("user").id);
     return c.body(null, 204);
@@ -244,12 +269,19 @@ export function createApp(options: AppOptions): Hono<AppEnv> {
     return c.body(null, 204);
   });
 
+  // A fine or a contribution: the listed members each owe the pot the amount.
+  api.post("/groups/:groupId/charges", auth, async (c) => {
+    const groupId = c.req.param("groupId");
+    store.requireMembership(groupId, c.get("user").id);
+    return c.json(store.saveCharge(groupId, await body(c, chargeSchema)), 201);
+  });
+
   api.post("/groups/:groupId/settlements", auth, async (c) => {
     const groupId = c.req.param("groupId");
     store.requireMembership(groupId, c.get("user").id);
     const input = await body(c, settlementSchema);
     if (input.fromMemberId === input.toMemberId) {
-      throw new HttpError(400, "validation_error", "Kies twee verschillende leden.");
+      throw new HttpError(400, "validation_error", "Kies twee verschillende teamleden.");
     }
     const expense = store.saveExpense(groupId, "settlement", {
       description: "Betaling",

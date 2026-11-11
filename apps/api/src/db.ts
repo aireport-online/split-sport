@@ -92,6 +92,37 @@ const migrations: string[] = [
   );
   CREATE INDEX expense_item_members_member ON expense_item_members(member_id);
   `,
+
+  // Sports teams: every group is a team with a sport, a pot (teamkas), a
+  // treasurer and a fine list. Fines and contributions are expenses with an
+  // entry_type; the pot is a member of kind 'pot'.
+  `
+  ALTER TABLE groups ADD COLUMN sport TEXT NOT NULL DEFAULT 'overig';
+  ALTER TABLE groups ADD COLUMN club TEXT;
+  ALTER TABLE groups ADD COLUMN season TEXT;
+  ALTER TABLE groups ADD COLUMN treasurer_member_id TEXT REFERENCES members(id) ON DELETE SET NULL;
+
+  ALTER TABLE members ADD COLUMN kind TEXT NOT NULL DEFAULT 'player' CHECK (kind IN ('player', 'pot'));
+  ALTER TABLE expenses ADD COLUMN entry_type TEXT CHECK (entry_type IN ('fine', 'contribution'));
+
+  CREATE TABLE fines (
+    id           TEXT PRIMARY KEY,
+    group_id     TEXT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    name         TEXT NOT NULL,
+    amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+    position     INTEGER NOT NULL
+  );
+  CREATE INDEX fines_group ON fines(group_id, position);
+
+  -- Groups that already existed get their pot, and their first member with an account as treasurer.
+  INSERT INTO members (id, group_id, user_id, name, kind, created_at)
+    SELECT lower(hex(randomblob(16))), id, NULL, 'Teamkas', 'pot', created_at FROM groups;
+  UPDATE groups SET treasurer_member_id = (
+    SELECT m.id FROM members m
+     WHERE m.group_id = groups.id AND m.user_id IS NOT NULL
+     ORDER BY m.created_at, m.rowid LIMIT 1
+  );
+  `,
 ];
 
 export function openDatabase(path: string): Db {
