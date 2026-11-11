@@ -105,7 +105,7 @@ public final class AppSession {
 
     // MARK: Links
 
-    /// Handles `split://join/<code>` and `https://<server>/join/<code>`. Returns false for other URLs.
+    /// Handles `splitsport://join/<code>` and `https://<server>/join/<code>`. Returns false for other URLs.
     @discardableResult
     public func open(_ url: URL) -> Bool {
         guard let code = InviteLink.code(from: url) else { return false }

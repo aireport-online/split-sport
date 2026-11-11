@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// "Groepen": the home screen.
+/// "Teams": the home screen.
 @MainActor
 @Observable
 public final class GroupsViewModel {

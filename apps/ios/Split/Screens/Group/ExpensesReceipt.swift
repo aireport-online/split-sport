@@ -1,8 +1,8 @@
 import SplitKit
 import SwiftUI
 
-/// The "Uitgaven" part of a group: one receipt with the expenses per month,
-/// newest first. Tapping a line opens it.
+/// The "Uitgaven" part of a team: one receipt with everything that happened
+/// per month, newest first. Tapping a line opens it.
 @MainActor
 struct ExpensesReceipt: View {
     let months: [GroupDetailViewModel.ExpenseMonth]
@@ -11,8 +11,8 @@ struct ExpensesReceipt: View {
     var body: some View {
         Receipt {
             if months.isEmpty {
-                ReceiptTitle(text: "Nog geen uitgaven")
-                Text("Voeg de eerste toe.")
+                ReceiptTitle(text: "Nog niets genoteerd")
+                Text("Vraag de eerste inleg of voeg een uitgave toe.")
                     .foregroundStyle(Theme.mutedInk)
             } else {
                 ForEach(Array(months.enumerated()), id: \.element.id) { index, month in
@@ -36,8 +36,8 @@ struct ExpensesReceipt: View {
     }
 }
 
-/// "Boodschappen ........ 64,12", and below it the highlighted payer, the date
-/// and what it means for you (or the "BETAALD" stamp on a payment).
+/// "Wedstrijdballen ........ 47,50", and below it who it is about (the payer,
+/// or the fined members), the date and what it means for you or a stamp.
 @MainActor
 private struct ExpenseLine: View {
     let row: GroupDetailViewModel.ExpenseRow
@@ -51,12 +51,12 @@ private struct ExpenseLine: View {
             // Side by side when it fits; below each other with large type or long names.
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    payer
+                    who
                     Spacer(minLength: 8)
                     outcome
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    payer
+                    who
                     outcome
                 }
             }
@@ -67,9 +67,14 @@ private struct ExpenseLine: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var payer: some View {
+    private var who: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Highlight(name: row.payerName, color: row.payerColor)
+            ForEach(row.parties) { party in
+                PartyName(party: party)
+            }
+            if row.hiddenPartyCount > 0 {
+                Text("+\(row.hiddenPartyCount)")
+            }
             Text(row.detail)
                 .lineLimit(1)
         }
@@ -77,11 +82,19 @@ private struct ExpenseLine: View {
 
     @ViewBuilder
     private var outcome: some View {
-        if row.isSettlement {
-            Stamp()
+        if let stamp = row.stamp {
+            Stamp(kind: stampKind(stamp))
         } else if let impact = row.impact {
             Text(impact)
                 .lineLimit(1)
+        }
+    }
+
+    private func stampKind(_ stamp: GroupDetailViewModel.EntryStamp) -> Stamp.Kind {
+        switch stamp {
+        case .paid: return .paid
+        case .fine: return .fine
+        case .contribution: return .contribution
         }
     }
 }

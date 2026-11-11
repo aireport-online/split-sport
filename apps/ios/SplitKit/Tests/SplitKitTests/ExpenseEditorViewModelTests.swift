@@ -58,8 +58,8 @@ final class ExpenseEditorViewModelTests: XCTestCase {
         XCTAssertNil(model.totalText)
         model.amountText = "9"
         guard case .shares(let shares) = model.preview else { return XCTFail("Expected shares") }
-        XCTAssertEqual(shares.map(\.name), ["Anna", "Bas", "Chris"])
-        XCTAssertEqual(shares.map(\.color), [.amber, .rose, .green])
+        XCTAssertEqual(shares.map(\.party.name), ["Anna", "Bas", "Chris"])
+        XCTAssertEqual(shares.map(\.party.highlighter), [.amber, .rose, .green])
         XCTAssertEqual(shares.map(\.amount), Array(repeating: "3,00", count: 3))
         XCTAssertEqual(model.totalText, "€\u{00A0}9,00")
     }
@@ -153,6 +153,7 @@ final class ExpenseEditorViewModelTests: XCTestCase {
         XCTAssertEqual(amounts(model), [anna: 6000, bas: 3000])
         XCTAssertEqual(model.split, .shares(weights: [
             .init(memberId: anna, weight: 2), .init(memberId: bas, weight: 1), .init(memberId: chris, weight: 0),
+            .init(memberId: Fixtures.pot.id, weight: 0),
         ]))
 
         model.setWeight(-3, for: bas)

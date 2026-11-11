@@ -172,9 +172,9 @@ final class AppSessionTests: XCTestCase {
 
     func testOpeningAnInviteLinkKeepsTheCode() throws {
         let session = makeSession()
-        XCTAssertTrue(session.open(try XCTUnwrap(URL(string: "split://join/abcd2345"))))
+        XCTAssertTrue(session.open(try XCTUnwrap(URL(string: "splitsport://join/abcd2345"))))
         XCTAssertEqual(session.pendingInviteCode, "ABCD2345")
-        XCTAssertFalse(session.open(try XCTUnwrap(URL(string: "split://settings"))))
+        XCTAssertFalse(session.open(try XCTUnwrap(URL(string: "splitsport://settings"))))
         XCTAssertEqual(session.pendingInviteCode, "ABCD2345")
     }
 }

@@ -18,7 +18,38 @@ struct Highlight: View {
     }
 }
 
-/// A group's name, underlined with a thick stroke of the group's highlighter.
+/// The Teamkas: not a person, so no highlighter. Its name is printed as a label,
+/// on-ink text on an ink fill with the same slightly tilted stroke as a highlighter.
+@MainActor
+struct PotLabel: View {
+    let name: String
+
+    var body: some View {
+        Text(name)
+            .foregroundStyle(Theme.onInk)
+            .lineLimit(1)
+            .padding(.horizontal, 6)
+            .background {
+                HighlighterStroke(variant: name.count).fill(Theme.ink)
+            }
+    }
+}
+
+/// A member of the team as it is printed everywhere: a person highlighted, the pot as a label.
+@MainActor
+struct PartyName: View {
+    let party: Party
+
+    var body: some View {
+        if let color = party.highlighter {
+            Highlight(name: party.name, color: color)
+        } else {
+            PotLabel(name: party.name)
+        }
+    }
+}
+
+/// A team's name, underlined with a thick stroke of the team's highlighter.
 /// On light paper the stroke runs behind the foot of the letters, like the web
 /// app's underline; on dark paper light letters would be unreadable on it, so
 /// there it sits just below them.
@@ -61,18 +92,18 @@ struct LineSwipe: View {
     }
 }
 
-/// Says who had a receipt line: a filled pill in the person's colour when they
-/// did, a dashed outline when they did not.
+/// Says who takes part (in a receipt line, a fine, a contribution): a filled
+/// pill in the person's colour when they do, a dashed outline when they do not.
+/// The Teamkas, which has no colour, is filled with ink.
 @MainActor
-struct PersonChip: View {
-    let name: String
-    let color: GroupColor
+struct PartyChip: View {
+    let party: Party
     let isSelected: Bool
     let toggle: () -> Void
 
     var body: some View {
         Button(action: toggle) {
-            Text(name)
+            Text(party.name)
                 .font(.chipLabel)
                 .lineLimit(1)
                 .foregroundStyle(textColor)
@@ -91,11 +122,13 @@ struct PersonChip: View {
     }
 
     private var textColor: Color {
-        isSelected ? Theme.highlighterInk : Theme.mutedInk
+        guard isSelected else { return Theme.mutedInk }
+        return party.isPot ? Theme.onInk : Theme.highlighterInk
     }
 
     private var fillColor: Color {
-        isSelected ? color.highlighterColor : Color.clear
+        guard isSelected else { return Color.clear }
+        return party.highlighter?.highlighterColor ?? Theme.ink
     }
 
     private var outlineColor: Color {
@@ -103,7 +136,7 @@ struct PersonChip: View {
     }
 }
 
-/// The eight highlighters to choose a group's colour from.
+/// The eight highlighters to choose a team's colour from.
 @MainActor
 struct HighlighterPicker: View {
     @Binding var selection: GroupColor

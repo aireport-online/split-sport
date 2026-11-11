@@ -1,20 +1,20 @@
 import SplitKit
 import SwiftUI
 
-/// "Gelijk": tick who takes part; every row shows that person's amount.
+/// "Gelijk": tick who takes part; every row shows that person's amount. The
+/// Teamkas is in the list too: ticking only the Teamkas means the pot pays.
 @MainActor
 struct EqualSplitRows: View {
     let model: ExpenseEditorViewModel
 
     var body: some View {
-        ForEach(model.members.indices, id: \.self) { index in
-            let member = model.members[index]
+        ForEach(model.members) { member in
             let isIncluded = model.equalMemberIds.contains(member.id)
             Button {
                 model.toggleEqualMember(member.id)
             } label: {
                 HStack(spacing: 12) {
-                    Highlight(name: member.name, color: GroupColor.palette(at: index))
+                    PartyName(party: member)
                     Spacer(minLength: 8)
                     Checkbox(isChecked: isIncluded)
                     AmountColumn(text: model.previewAmount(for: member.id))
@@ -34,10 +34,9 @@ struct ExactSplitRows: View {
     let model: ExpenseEditorViewModel
 
     var body: some View {
-        ForEach(model.members.indices, id: \.self) { index in
-            let member = model.members[index]
+        ForEach(model.members) { member in
             HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Highlight(name: member.name, color: GroupColor.palette(at: index))
+                PartyName(party: member)
                 Spacer(minLength: 8)
                 AmountField(label: "Bedrag voor \(member.name)", text: amountText(member.id))
             }
@@ -63,10 +62,9 @@ struct SharesSplitRows: View {
     let model: ExpenseEditorViewModel
 
     var body: some View {
-        ForEach(model.members.indices, id: \.self) { index in
-            let member = model.members[index]
+        ForEach(model.members) { member in
             HStack(spacing: 12) {
-                Highlight(name: member.name, color: GroupColor.palette(at: index))
+                PartyName(party: member)
                 Spacer(minLength: 8)
                 PaperStepper(name: member.name, value: weight(member.id))
                 AmountColumn(text: model.previewAmount(for: member.id))

@@ -61,6 +61,12 @@ final class MoneyTests: XCTestCase {
         XCTAssertEqual(Money.euro(-800), "€\u{00A0}8,00")
     }
 
+    func testCashOnlyShowsASignWhenNegative() {
+        XCTAssertEqual(Money.cash(4750), "€\u{00A0}47,50")
+        XCTAssertEqual(Money.cash(0), "€\u{00A0}0,00")
+        XCTAssertEqual(Money.cash(-500), "\u{2212}\u{00A0}€\u{00A0}5,00")
+    }
+
     func testSignedEuroHeadlineFigures() {
         XCTAssertEqual(Money.signedEuro(10_955), "+\u{00A0}€\u{00A0}109,55")
         XCTAssertEqual(Money.signedEuro(-800), "\u{2212}\u{00A0}€\u{00A0}8,00")

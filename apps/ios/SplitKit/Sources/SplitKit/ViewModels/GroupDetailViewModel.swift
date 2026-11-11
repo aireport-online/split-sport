@@ -49,7 +49,7 @@ public final class GroupDetailViewModel {
     public struct PotSummary: Equatable, Sendable {
         /// The kasstand as the large figure: "€ 47,50".
         public let cash: String
-        /// "Nog te ontvangen": what members still owe the pot.
+        /// "Nog te ontvangen": what members still owe the pot, as a receipt line without the euro sign.
         public let toReceive: String
         /// "Nog uit te betalen": what the pot owes members who advanced something.
         public let toPay: String
@@ -229,8 +229,8 @@ public final class GroupDetailViewModel {
         let treasurer = detail.treasurerMemberId.flatMap(detail.member)
         return PotSummary(
             cash: Money.cash(detail.pot.cashCents),
-            toReceive: Money.euro(detail.pot.toReceiveCents),
-            toPay: Money.euro(detail.pot.toPayCents),
+            toReceive: Money.plain(detail.pot.toReceiveCents),
+            toPay: Money.plain(detail.pot.toPayCents),
             treasurer: treasurer.map { detail.party($0.id) },
             treasurerIBAN: treasurer?.iban
         )

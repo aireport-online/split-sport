@@ -1,7 +1,7 @@
 import XCTest
 @testable import SplitKit
 
-/// Exercises `APIClient` against a real Split server. Skipped unless `SPLIT_API_URL`
+/// Exercises `APIClient` against a real Split Sport server. Skipped unless `SPLIT_API_URL`
 /// is set, e.g. `SPLIT_API_URL=http://localhost:8787 swift test --filter IntegrationTests`.
 final class IntegrationTests: XCTestCase {
     private func serverURL() throws -> URL {
@@ -39,22 +39,38 @@ final class IntegrationTests: XCTestCase {
         let withIBAN = try await api.updateMe(name: "Anna de Vries", iban: "nl91 abna 0417 1643 00")
         XCTAssertEqual(withIBAN.iban, "NL91ABNA0417164300")
 
-        // Group with two members without account.
-        var group = try await api.createGroup(name: "Weekendje Texel", color: .teal)
+        // A team: the server adds the pot, makes the creator penningmeester and gives a default fine list.
+        var group = try await api.createGroup(
+            name: "Heren 3", color: .teal, sport: .hockey, club: "MHC Oostpoort", season: Season.of(today)
+        )
         XCTAssertEqual(group.color, .teal)
-        XCTAssertEqual(group.members.map(\.name), ["Anna de Vries"])
+        XCTAssertEqual(group.sport, .hockey)
+        XCTAssertEqual(group.club, "MHC Oostpoort")
+        XCTAssertEqual(group.season, Season.of(today))
+        XCTAssertEqual(group.members.map(\.name), ["Anna de Vries", "Teamkas"])
+        XCTAssertEqual(group.members.map(\.kind), [.player, .pot])
+        XCTAssertEqual(group.potMemberId, group.members.last?.id)
+        XCTAssertEqual(group.treasurerMemberId, group.myMemberId)
+        XCTAssertEqual(group.fines.first?.name, "Te laat")
+        XCTAssertEqual(group.fines.first?.amountCents, 200)
+        XCTAssertEqual(group.pot, PotStatus(cashCents: 0, toReceiveCents: 0, toPayCents: 0))
+
         group = try await api.addMember(groupId: group.id, name: "Bas")
         group = try await api.addMember(groupId: group.id, name: "Chris")
         group = try await api.renameMember(groupId: group.id, memberId: group.members[2].id, name: "Christiaan")
-        group = try await api.updateGroup(id: group.id, name: "Texel 2026", color: nil)
-        XCTAssertEqual(group.name, "Texel 2026")
-        XCTAssertEqual(group.members.map(\.name), ["Anna de Vries", "Bas", "Christiaan"])
-        let (anna, bas, chris) = (group.members[0].id, group.members[1].id, group.members[2].id)
+        group = try await api.updateGroup(id: group.id, patch: GroupPatch(name: "Heren 4", sport: .korfbal, club: ""))
+        XCTAssertEqual(group.name, "Heren 4")
+        XCTAssertEqual(group.sport, .korfbal)
+        XCTAssertNil(group.club, "An empty club clears it")
+        XCTAssertEqual(group.members.map(\.name), ["Anna de Vries", "Bas", "Christiaan", "Teamkas"], "The pot stays last")
+        let (anna, bas, chris, pot) = (group.members[0].id, group.members[1].id, group.members[2].id, group.potMemberId)
         XCTAssertEqual(group.myMemberId, anna)
+        XCTAssertEqual(group.players.map(\.id), [anna, bas, chris])
 
         let groups = try await api.groups()
         XCTAssertEqual(groups.map(\.id), [group.id])
-        XCTAssertEqual(groups.first?.memberCount, 3)
+        XCTAssertEqual(groups.first?.memberCount, 3, "The pot is not counted")
+        XCTAssertEqual(groups.first?.sport, .korfbal)
 
         // One expense in every split mode; the server must agree with the local computeShares.
         let splits: [(String, Int, Split)] = [
@@ -102,16 +118,98 @@ final class IntegrationTests: XCTestCase {
             XCTAssertEqual(error.userMessage, SplitMath.SplitError.exactSumMismatch.message)
         }
 
-        // Balances: Anna paid 9600 and owes 400 + 1250 + 333 + 900 = 2883.
+        // Among members: Anna paid 9600 and owes 400 + 1250 + 333 + 900 = 2883. Nothing with the pot yet.
         group = try await api.group(id: group.id)
         XCTAssertEqual(group.totalSpentCents, 9600)
-        XCTAssertEqual(group.balanceCents(of: anna), 6717)
-        XCTAssertEqual(group.balances.reduce(0) { $0 + $1.balanceCents }, 0)
-        XCTAssertFalse(group.transfers.isEmpty)
-        XCTAssertTrue(group.transfers.allSatisfy { $0.toMemberId == anna })
+        XCTAssertEqual(group.balance(of: anna), Balance(memberId: anna, balanceCents: 6717, potCents: 0, peerCents: 6717))
+        XCTAssertEqual(group.balance(of: bas)?.peerCents, -5717)
+        XCTAssertEqual(group.balance(of: chris)?.peerCents, -1000)
+        XCTAssertEqual(group.transfers.map(\.amountCents), [5717, 1000])
+
+        // ---- The team pot ----------------------------------------------------
+
+        // Everyone is asked for 25,00; Bas gets a fine from the fine list.
+        let contribution = try await api.createCharge(groupId: group.id, input: ChargeInput(
+            type: .contribution, description: "Inleg november", amountCents: 2500, memberIds: [anna, bas, chris], date: today
+        ))
+        XCTAssertEqual(contribution.kind, .contribution)
+        XCTAssertEqual(contribution.amountCents, 7500)
+        XCTAssertEqual(contribution.paidById, pot)
+        XCTAssertEqual(contribution.shares.map(\.amountCents), [2500, 2500, 2500])
+
+        let lateFine = try XCTUnwrap(group.fines.first)
+        let fine = try await api.createCharge(groupId: group.id, input: ChargeInput(
+            type: .fine, description: lateFine.name, amountCents: lateFine.amountCents, memberIds: [bas], date: today
+        ))
+        XCTAssertEqual(fine.kind, .fine)
+        XCTAssertEqual(fine.shares.map(\.memberId), [bas])
+
+        group = try await api.group(id: group.id)
+        XCTAssertEqual(group.pot, PotStatus(cashCents: 0, toReceiveCents: 7700, toPayCents: 0), "Claims are not cash")
+        XCTAssertEqual(group.balance(of: bas), Balance(memberId: bas, balanceCents: -8417, potCents: -2700, peerCents: -5717))
+        XCTAssertEqual(group.fineStats, [FineStat(memberId: bas, count: 1, totalCents: 200)])
+        XCTAssertEqual(group.totalSpentCents, 9600, "Charges are not expenses")
+
+        // The pot cannot be charged, and a fine cannot be edited.
+        do {
+            _ = try await api.createCharge(groupId: group.id, input: ChargeInput(
+                type: .fine, description: "x", amountCents: 100, memberIds: [pot], date: today
+            ))
+            XCTFail("Expected the pot to be refused")
+        } catch {
+            XCTAssertEqual((error as? APIError)?.code, "validation_error")
+        }
+        do {
+            let input = ExpenseInput(description: "Te laat", amountCents: 100, date: today, paidById: bas, split: .equal(memberIds: [bas]))
+            _ = try await api.updateExpense(groupId: group.id, expenseId: fine.id, input: input)
+            XCTFail("Expected not_found")
+        } catch {
+            XCTAssertEqual((error as? APIError)?.code, "not_found")
+        }
+
+        // Bas pays the pot; the pot pays the referee; Chris buys balls for the team.
+        let payment = try await api.createSettlement(
+            groupId: group.id, input: SettlementInput(fromMemberId: bas, toMemberId: pot, amountCents: 2700, date: today)
+        )
+        XCTAssertEqual(payment.kind, .settlement)
+        _ = try await api.createExpense(groupId: group.id, input: ExpenseInput(
+            description: "Scheidsrechter", amountCents: 1500, date: today, paidById: pot, split: .equal(memberIds: [pot])
+        ))
+        _ = try await api.createExpense(groupId: group.id, input: ExpenseInput(
+            description: "Wedstrijdballen", amountCents: 4000, date: today, paidById: chris, split: .equal(memberIds: [pot])
+        ))
+
+        group = try await api.group(id: group.id)
+        XCTAssertEqual(group.pot, PotStatus(cashCents: 1200, toReceiveCents: 2500, toPayCents: 1500))
+        XCTAssertEqual(group.balances.map(\.potCents), [-2500, 0, 1500, 1000])
+        XCTAssertEqual(group.balances.map(\.peerCents), [6717, -5717, -1000, 0])
+        XCTAssertEqual(group.transfers, [
+            Transfer(fromMemberId: anna, toMemberId: pot, amountCents: 2500),
+            Transfer(fromMemberId: pot, toMemberId: chris, amountCents: 1500),
+            Transfer(fromMemberId: bas, toMemberId: anna, amountCents: 5717),
+            Transfer(fromMemberId: chris, toMemberId: anna, amountCents: 1000),
+        ], "First with the pot, then among members")
+        XCTAssertEqual(group.totalSpentCents, 15100)
         XCTAssertEqual(group.member(anna)?.iban, "NL91ABNA0417164300")
 
-        // Settle every suggested payment; afterwards everyone is square.
+        // The fine list and the penningmeester.
+        group = try await api.addFine(groupId: group.id, name: "Eigen goal", amountCents: 250)
+        let ownGoal = try XCTUnwrap(group.fines.last)
+        XCTAssertEqual(ownGoal.name, "Eigen goal")
+        group = try await api.updateFine(groupId: group.id, fineId: ownGoal.id, name: "Eigen doelpunt", amountCents: 300)
+        XCTAssertEqual(group.fines.last, Fine(id: ownGoal.id, name: "Eigen doelpunt", amountCents: 300))
+        group = try await api.removeFine(groupId: group.id, fineId: ownGoal.id)
+        XCTAssertFalse(group.fines.contains { $0.id == ownGoal.id })
+        group = try await api.updateGroup(id: group.id, patch: GroupPatch(treasurerMemberId: bas))
+        XCTAssertEqual(group.treasurerMemberId, bas)
+        do {
+            _ = try await api.updateGroup(id: group.id, patch: GroupPatch(treasurerMemberId: pot))
+            XCTFail("Expected the pot to be refused as penningmeester")
+        } catch {
+            XCTAssertEqual((error as? APIError)?.code, "validation_error")
+        }
+
+        // Settle every suggested payment; afterwards everyone, the pot included, is square.
         for transfer in group.transfers {
             let settlement = try await api.createSettlement(
                 groupId: group.id,
@@ -121,20 +219,24 @@ final class IntegrationTests: XCTestCase {
             XCTAssertEqual(settlement.shares.map(\.memberId), [transfer.toMemberId])
         }
         group = try await api.group(id: group.id)
-        XCTAssertTrue(group.balances.allSatisfy { $0.balanceCents == 0 })
+        XCTAssertTrue(group.balances.allSatisfy { $0.balanceCents == 0 && $0.potCents == 0 && $0.peerCents == 0 })
         XCTAssertTrue(group.transfers.isEmpty)
+        XCTAssertEqual(group.pot, PotStatus(cashCents: 2200, toReceiveCents: 0, toPayCents: 0))
 
         var expenses = try await api.expenses(groupId: group.id)
-        XCTAssertEqual(expenses.count, 6)
-        XCTAssertEqual(expenses.filter { $0.kind == .settlement }.count, 2)
+        XCTAssertEqual(expenses.count, 13)
+        XCTAssertEqual(expenses.filter { $0.kind == .settlement }.count, 5)
+        XCTAssertEqual(expenses.filter { $0.kind == .fine }.count, 1)
+        XCTAssertEqual(expenses.filter { $0.kind == .contribution }.count, 1)
 
-        // Delete an expense and a settlement.
+        // Remove an expense, the fine and a payment.
         try await api.deleteExpense(groupId: group.id, expenseId: created[1].id)
-        if let settlement = expenses.first(where: { $0.kind == .settlement }) {
-            try await api.deleteExpense(groupId: group.id, expenseId: settlement.id)
-        }
+        try await api.deleteExpense(groupId: group.id, expenseId: fine.id)
+        try await api.deleteExpense(groupId: group.id, expenseId: payment.id)
         expenses = try await api.expenses(groupId: group.id)
-        XCTAssertEqual(expenses.count, 4)
+        XCTAssertEqual(expenses.count, 10)
+        group = try await api.group(id: group.id)
+        XCTAssertEqual(group.fineStats, [])
 
         // A member that is in expenses cannot be removed.
         do {
@@ -144,13 +246,23 @@ final class IntegrationTests: XCTestCase {
             XCTAssertEqual((error as? APIError)?.code, "member_in_use")
         }
 
-        // Invite: a second account sees the group, claims "Bas" and becomes that member.
+        // Invite: a second account sees the team with its sport, cannot claim the pot,
+        // claims "Bas" and becomes that member.
         let other = try await anonymous.register(name: "Bas Jansen", email: "ios-\(UUID().uuidString.lowercased())@example.nl", password: "geheim-wachtwoord")
         let otherAPI = APIClient(serverURL: server, token: other.token)
         let preview = try await otherAPI.invite(code: group.inviteCode.lowercased())
         XCTAssertEqual(preview.groupId, group.id)
+        XCTAssertEqual(preview.sport, .korfbal)
+        XCTAssertNil(preview.club)
+        XCTAssertEqual(preview.memberCount, 3)
         XCTAssertFalse(preview.alreadyMember)
-        XCTAssertEqual(preview.unclaimedMembers.map(\.name), ["Bas", "Christiaan"])
+        XCTAssertEqual(preview.unclaimedMembers.map(\.name), ["Bas", "Christiaan"], "The pot cannot be claimed")
+        do {
+            _ = try await otherAPI.joinGroup(code: group.inviteCode, memberId: pot)
+            XCTFail("Expected member_taken")
+        } catch {
+            XCTAssertEqual((error as? APIError)?.code, "member_taken")
+        }
         let joined = try await otherAPI.joinGroup(code: group.inviteCode, memberId: bas)
         XCTAssertEqual(joined.myMemberId, bas)
         XCTAssertEqual(joined.memberName(bas), "Bas Jansen")

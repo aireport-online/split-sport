@@ -40,7 +40,7 @@ public final class SettlementViewModel {
 
     /// What still keeps the payment from being saved; nil when it is complete.
     public var validationMessage: String? {
-        if fromMemberId == toMemberId { return "Kies twee verschillende leden." }
+        if fromMemberId == toMemberId { return "Kies twee verschillende partijen." }
         guard let amountCents, amountCents > 0, amountCents <= SplitMath.maxAmountCents else {
             return "Vul een geldig bedrag in."
         }

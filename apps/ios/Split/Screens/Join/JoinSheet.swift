@@ -1,7 +1,7 @@
 import SplitKit
 import SwiftUI
 
-/// "Deelnemen": enter an invite code (or arrive by link), see the group and say who you are.
+/// "Deelnemen": enter an invite code (or arrive by link), see the team and say who you are.
 @MainActor
 struct JoinSheet: View {
     let onJoined: (GroupDetail) -> Void
@@ -63,10 +63,13 @@ struct JoinSheet: View {
     private func groupReceipt(_ preview: InvitePreview) -> some View {
         Receipt {
             GroupNameText(name: preview.name, color: preview.color)
+            Text(Wording.teamLine(sport: preview.sport, club: preview.club, season: nil))
+                .font(.tillSmall)
+                .foregroundStyle(Theme.mutedInk)
             Text(Wording.memberCount(preview.memberCount))
                 .font(.tillSmall)
             if preview.alreadyMember {
-                Text("Je bent al lid van deze groep.")
+                Text("Je bent al lid van dit team.")
                     .foregroundStyle(Theme.mutedInk)
             }
         }
@@ -83,7 +86,7 @@ struct JoinSheet: View {
             IdentityRow(title: "Ik sta er niet tussen", isSelected: model.identity == .newMember) {
                 model.identity = .newMember
             }
-            Text("Deze leden hebben nog geen account. Kies je naam om hun uitgaven over te nemen.")
+            Text("Deze teamleden hebben nog geen account. Kies je naam om hun uitgaven over te nemen.")
                 .font(.tillSmall)
                 .foregroundStyle(Theme.mutedInk)
         }
@@ -99,7 +102,7 @@ struct JoinSheet: View {
                     }
                 }
             } label: {
-                BusyLabel(title: preview.alreadyMember ? "Open groep" : "Deelnemen", isBusy: model.isWorking)
+                BusyLabel(title: preview.alreadyMember ? "Open team" : "Deelnemen", isBusy: model.isWorking)
             }
             .buttonStyle(PaperButtonStyle(kind: .primary))
             .disabled(!model.canJoin)
@@ -107,7 +110,7 @@ struct JoinSheet: View {
             Button {
                 Task { await model.lookUp() }
             } label: {
-                BusyLabel(title: "Zoek groep", isBusy: model.isWorking)
+                BusyLabel(title: "Zoek team", isBusy: model.isWorking)
             }
             .buttonStyle(PaperButtonStyle(kind: .primary))
             .disabled(!model.canLookUp)

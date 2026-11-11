@@ -1,7 +1,7 @@
 import SplitKit
 
-/// A group on the navigation stack. Name and colour travel along so the
-/// screen has a title before the group has loaded.
+/// A team on the navigation stack. Name and colour travel along so the
+/// screen has a title before the team has loaded.
 struct GroupRoute: Hashable {
     let id: String
     let name: String

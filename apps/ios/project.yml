@@ -1,4 +1,4 @@
-# XcodeGen spec for the Split iOS app. Generate the Xcode project on a Mac with:
+# XcodeGen spec for the Split Sport iOS app. Generate the Xcode project on a Mac with:
 #   brew install xcodegen && xcodegen
 # Split.xcodeproj and Split/Info.plist are generated; do not edit or commit them.
 name: Split
@@ -35,7 +35,7 @@ targets:
     info:
       path: Split/Info.plist
       properties:
-        CFBundleDisplayName: Split
+        CFBundleDisplayName: Split Sport
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
@@ -54,21 +54,22 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        NSCameraUsageDescription: Split gebruikt de camera om een foto van een bon te maken, zodat de regels automatisch worden ingevuld.
-        NSPhotoLibraryUsageDescription: Split gebruikt je foto's om een foto van een bon te kiezen, zodat de regels automatisch worden ingevuld.
+        NSCameraUsageDescription: Split Sport gebruikt de camera om een foto van een bon te maken, zodat de regels automatisch worden ingevuld.
+        NSPhotoLibraryUsageDescription: Split Sport gebruikt je foto's om een foto van een bon te kiezen, zodat de regels automatisch worden ingevuld.
         # Lets a development server on localhost or the local network be reached over http.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
-        # split://join/<code> opens the "Deelnemen" screen.
+        # splitsport://join/<code> opens the "Deelnemen" screen. Its own scheme, so
+        # Split and Split Sport can be installed side by side.
         CFBundleURLTypes:
           - CFBundleTypeRole: Viewer
-            CFBundleURLName: online.aireport.split
+            CFBundleURLName: online.aireport.split.sport
             CFBundleURLSchemes:
-              - split
+              - splitsport
         ITSAppUsesNonExemptEncryption: false
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: online.aireport.split
+        PRODUCT_BUNDLE_IDENTIFIER: online.aireport.split.sport
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor

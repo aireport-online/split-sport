@@ -4,7 +4,7 @@ import SplitKit
 
 /// Keeps the session token in the Keychain.
 final class KeychainTokenStore: TokenStore {
-    private let service = "online.aireport.split"
+    private let service = "online.aireport.split.sport"
     private let account = "session-token"
 
     private var baseQuery: [String: Any] {

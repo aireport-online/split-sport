@@ -19,7 +19,7 @@ struct ProfileSheet: View {
                     PaperField(label: "Naam", text: $model.name, kind: .name)
                     ReadOnlyField(label: "E-mail", value: model.email)
                     PaperField(label: "IBAN", text: $model.iban, kind: .code)
-                    Text("Zodat anderen weten waar ze kunnen betalen.")
+                    Text("Zodat teamgenoten weten waar ze kunnen betalen.")
                         .font(.tillSmall)
                         .foregroundStyle(Theme.mutedInk)
                 }
@@ -68,7 +68,7 @@ struct ProfileSheet: View {
                 }
                 Button("Annuleren", role: .cancel) {}
             } message: {
-                Text("Je account en je aanmelding bij al je groepen worden verwijderd. Dit kan niet ongedaan worden gemaakt.")
+                Text("Je account en je aanmelding bij al je teams worden verwijderd. Dit kan niet ongedaan worden gemaakt.")
             }
         }
     }

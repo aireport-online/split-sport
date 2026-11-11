@@ -131,7 +131,7 @@ anywhere; the only depth is paper on the desk.
 
 ### Highlighters
 
-A group stores one of eight keys (`color`); a member's highlighter is their position in
+A team stores one of eight keys (`color`); a member's highlighter is their position in
 `GroupDetail.members` modulo 8, in this order:
 
 | # | Key | Highlighter | Colour |
@@ -160,9 +160,9 @@ Month headings on a receipt are uppercase mono ("NOVEMBER 2026"), not letter-spa
 
 ### Elements
 
-- **Wordmark.** "Split" in Barlow Condensed Bold with the stamp "SPORT" after it, torn in two: a vertical dashed perforation line in
-  ink runs between "Sp" and "lit", extending a little above and below the letters, with a small gap
-  between the halves.
+- **Wordmark.** "Split" in Barlow Condensed Bold, torn in two: a vertical dashed perforation line
+  in ink runs between "Sp" and "lit", extending a little above and below the letters, with a small
+  gap between the halves. After the word, raised to the top of the letters, the stamp "SPORT".
 - **Receipt.** Paper fill, no border, no shadow, top corners 2 px. The bottom edge is a zigzag tear:
   teeth 12 wide and 6 high. Padding 16–20. Sections on one receipt are separated by a
   **perforation**: a 1.5 px dashed line (dash 6, gap 4) in the perforation colour.

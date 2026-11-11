@@ -124,7 +124,8 @@ To edit an expense, rebuild the split from the stored expense:
 
 Payments, fines and contributions cannot be edited: `PUT` only accepts `kind: "expense"` and answers
 404 for the others. Delete them (`DELETE /groups/:id/expenses/:expenseId`) and record them again.
-The pot cannot be renamed, removed, claimed with an invite or charged.
+The pot cannot be renamed or removed (403), claimed with an invite (409) or charged (400). The
+treasurer can be any team member, also one without an account; the clients then have no IBAN to show.
 
 Every endpoint except `/config`, `/auth/register` and `/auth/login` needs a token, the invite
 endpoints included.

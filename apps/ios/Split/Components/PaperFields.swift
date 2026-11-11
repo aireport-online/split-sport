@@ -106,6 +106,8 @@ struct AmountField: View {
     let label: String
     @Binding var text: String
     var style = Style.line
+    /// What the empty field shows.
+    var prompt = "0,00"
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -135,7 +137,7 @@ struct AmountField: View {
     }
 
     private var field: some View {
-        TextField("0,00", text: $text)
+        TextField(prompt, text: $text)
             .keyboardType(.decimalPad)
             .focused($isFocused)
             .accessibilityLabel(label)
@@ -159,11 +161,12 @@ struct FieldUnderline: View {
     }
 }
 
-/// Chooses one member of the group; the choice is shown as a highlighted name.
+/// Chooses one member of the team (or the Teamkas); the choice is shown the way
+/// that member is printed everywhere.
 @MainActor
 struct MemberMenu: View {
     let label: String
-    let members: [Member]
+    let members: [Party]
     @Binding var selection: String
 
     var body: some View {
@@ -178,28 +181,64 @@ struct MemberMenu: View {
                 }
             } label: {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Highlight(name: selectedName, color: selectedColor)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Theme.ink)
+                    if let selected {
+                        PartyName(party: selected)
+                    } else {
+                        Text("Kies")
+                            .foregroundStyle(Theme.mutedInk)
+                    }
+                    MenuChevron()
                 }
             }
             .accessibilityLabel(label)
-            .accessibilityValue(selectedName)
+            .accessibilityValue(selected?.name ?? "")
             Spacer(minLength: 0)
         }
     }
 
-    private var selectedIndex: Int? {
-        members.firstIndex { $0.id == selection }
+    private var selected: Party? {
+        members.first { $0.id == selection }
     }
+}
 
-    private var selectedName: String {
-        selectedIndex.map { members[$0].name } ?? "–"
+/// Chooses the sport of a team.
+@MainActor
+struct SportMenu: View {
+    @Binding var selection: Sport
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text("Sport")
+                .accessibilityHidden(true)
+            Menu {
+                Picker("Sport", selection: $selection) {
+                    ForEach(Sport.allCases) { sport in
+                        Text(sport.label).tag(sport)
+                    }
+                }
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(selection.label)
+                        .font(.tillBold)
+                        .foregroundStyle(Theme.ink)
+                    MenuChevron()
+                }
+            }
+            .accessibilityLabel("Sport")
+            .accessibilityValue(selection.label)
+            Spacer(minLength: 0)
+        }
     }
+}
 
-    private var selectedColor: GroupColor {
-        GroupColor.palette(at: selectedIndex ?? 0)
+/// The small arrow that says a value opens a menu.
+@MainActor
+private struct MenuChevron: View {
+    var body: some View {
+        Image(systemName: "chevron.down")
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(Theme.ink)
+            .accessibilityHidden(true)
     }
 }
 
