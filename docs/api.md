@@ -135,7 +135,7 @@ image. Clients scale photos down to 1600 px on the long side and send JPEG. `mer
 Anthropic API key; check `GET /config` and hide the scan button in that case.
 
 Invite codes are 8 characters (`A–Z`, `2–9`), case-insensitive. The share link is
-`<server>/join/<code>`; the mobile apps also open `split://join/<code>`.
+`<server>/join/<code>`; the mobile apps also open `splitsport://join/<code>` (their own scheme, so Split and Split Sport can be installed side by side).
 
 ## Error codes
 
