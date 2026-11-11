@@ -14,12 +14,13 @@ import online.aireport.split.data.GroupRepository
 import online.aireport.split.data.api.ApiException
 import online.aireport.split.data.model.GroupColor
 import online.aireport.split.data.model.GroupDetail
+import online.aireport.split.data.model.Sport
 import online.aireport.split.ui.common.UiText
 import online.aireport.split.ui.common.toUiText
 
 data class GroupSettingsUiState(
     val isLoading: Boolean = true,
-    /** Set when the group could not be loaded. */
+    /** Set when the team could not be loaded. */
     val loadError: UiText? = null,
     val group: GroupDetail? = null,
     /** `<server>/join/<code>`, for the share sheet. */
@@ -28,7 +29,7 @@ data class GroupSettingsUiState(
     val isBusy: Boolean = false,
     /** A one-off message for the snackbar. */
     val message: UiText? = null,
-    /** The signed-in person left the group; the screen can close. */
+    /** The signed-in person left the team; the screen can close. */
     val hasLeft: Boolean = false,
 )
 
@@ -36,7 +37,7 @@ class GroupSettingsViewModel(
     private val groupId: String,
     private val groupRepository: GroupRepository,
     private val accountRepository: AccountRepository,
-) : ViewModel() {
+) : ViewModel(), GroupSettingsActions {
     private val _uiState = MutableStateFlow(GroupSettingsUiState())
     val uiState: StateFlow<GroupSettingsUiState> = _uiState.asStateFlow()
 
@@ -44,22 +45,34 @@ class GroupSettingsViewModel(
         load()
     }
 
-    fun retry() {
+    override fun retry() {
         _uiState.update { it.copy(isLoading = true, loadError = null) }
         load()
     }
 
-    fun rename(name: String) = change { groupRepository.renameGroup(groupId, name) }
+    override fun updateDetails(name: String, club: String, season: String) =
+        change { groupRepository.updateDetails(groupId, name, club, season) }
 
-    fun recolor(color: GroupColor) = change { groupRepository.recolorGroup(groupId, color) }
+    override fun recolor(color: GroupColor) = change { groupRepository.recolorGroup(groupId, color) }
 
-    fun addMember(name: String) = change { groupRepository.addMember(groupId, name) }
+    override fun changeSport(sport: Sport) = change { groupRepository.changeSport(groupId, sport) }
 
-    fun renameMember(memberId: String, name: String) = change { groupRepository.renameMember(groupId, memberId, name) }
+    override fun changeTreasurer(memberId: String) = change { groupRepository.changeTreasurer(groupId, memberId) }
 
-    fun removeMember(memberId: String) = change { groupRepository.removeMember(groupId, memberId) }
+    override fun addFine(name: String, amountCents: Long) = change { groupRepository.addFine(groupId, name, amountCents) }
 
-    fun leave() {
+    override fun updateFine(fineId: String, name: String, amountCents: Long) =
+        change { groupRepository.updateFine(groupId, fineId, name, amountCents) }
+
+    override fun removeFine(fineId: String) = change { groupRepository.removeFine(groupId, fineId) }
+
+    override fun addMember(name: String) = change { groupRepository.addMember(groupId, name) }
+
+    override fun renameMember(memberId: String, name: String) = change { groupRepository.renameMember(groupId, memberId, name) }
+
+    override fun removeMember(memberId: String) = change { groupRepository.removeMember(groupId, memberId) }
+
+    override fun leave() {
         if (_uiState.value.isBusy) return
         _uiState.update { it.copy(isBusy = true) }
         viewModelScope.launch {
@@ -72,7 +85,7 @@ class GroupSettingsViewModel(
         }
     }
 
-    fun onMessageShown() = _uiState.update { it.copy(message = null) }
+    override fun onMessageShown() = _uiState.update { it.copy(message = null) }
 
     private fun load() {
         viewModelScope.launch {
@@ -88,7 +101,7 @@ class GroupSettingsViewModel(
         }
     }
 
-    /** Runs a change that answers with the updated group. */
+    /** Runs a change that answers with the updated team. */
     private fun change(request: suspend () -> GroupDetail) {
         if (_uiState.value.isBusy) return
         _uiState.update { it.copy(isBusy = true) }

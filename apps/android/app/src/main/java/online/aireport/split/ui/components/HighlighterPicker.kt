@@ -37,6 +37,8 @@ fun HighlighterPicker(
             .alpha(if (enabled) 1f else DISABLED_ALPHA)
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
+        // Two tidy rows of four rather than seven and a stray one.
+        maxItemsInEachRow = GroupColor.entries.size / 2,
     ) {
         GroupColor.entries.forEach { color ->
             val isSelected = color == selected

@@ -126,10 +126,12 @@ fun ChargeScreen(
                     val enabled = !state.isSaving
                     if (isFine) {
                         FineForm(form, group, onFormChange, enabled)
+                        ChargeTotal(form)
                     } else {
                         ContributionForm(form, group, onFormChange, enabled)
+                        Perforation(Modifier.padding(horizontal = ReceiptPadding))
+                        ChargeTotal(form)
                     }
-                    ChargeTotal(form)
                 }
             }
             state.loadError != null -> ErrorState(state.loadError.resolve(), onRetry, Modifier.padding(padding))
@@ -181,7 +183,7 @@ private fun ContributionForm(form: ChargeForm, group: GroupDetail, onFormChange:
         amountLabel = stringResource(R.string.contribution_amount),
         descriptionPlaceholder = stringResource(R.string.contribution_placeholder),
     )
-    Perforation(Modifier.padding(horizontal = ReceiptPadding))
+    // The underline of the date field above already separates the two parts.
     Section(stringResource(R.string.charge_who)) {
         MemberChips(form, group, onFormChange, enabled)
     }
@@ -245,12 +247,12 @@ private fun MemberChips(form: ChargeForm, group: GroupDetail, onFormChange: (Cha
     }
 }
 
-/** "5 × € 25,00 = € 125,00", once there is an amount and someone to charge. */
+/** "5 × € 25,00 = € 125,00", once there is an amount and more than one person to charge. */
 @Composable
 private fun ChargeTotal(form: ChargeForm) {
     val amountCents = form.amountCents ?: return
     val totalCents = form.totalCents ?: return
-    Perforation(Modifier.padding(horizontal = ReceiptPadding))
+    if (form.memberIds.size < 2) return
     Text(
         text = stringResource(
             R.string.charge_total,

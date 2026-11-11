@@ -8,6 +8,11 @@ import okhttp3.Headers
 import online.aireport.split.core.Split
 import online.aireport.split.core.SplitItem
 import online.aireport.split.data.api.ApiException
+import online.aireport.split.data.model.ChargeType
+import online.aireport.split.data.model.ExpenseKind
+import online.aireport.split.data.model.GroupColor
+import online.aireport.split.data.model.PotStatus
+import online.aireport.split.data.model.Sport
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -171,6 +176,76 @@ class ApiGatewayTest {
     }
 
     @Test
+    fun `a charge is sent with its type and the amount per member`() = runTest {
+        backend.sessionStore.signIn(serverUrl, "t")
+        server.enqueue(
+            json(
+                """{"id":"e2","groupId":"g1","kind":"fine","description":"Te laat","amountCents":400,
+                   "paidById":"pot","date":"2026-11-02","splitMode":"exact",
+                   "shares":[{"memberId":"m1","amountCents":200,"weight":null},{"memberId":"m2","amountCents":200,"weight":null}],
+                   "items":[],"createdAt":"2026-11-02T10:00:00.000Z","updatedAt":"2026-11-02T10:00:00.000Z"}""",
+                code = 201,
+            ),
+        )
+
+        val fine = backend.expenses.charge("g1", ChargeType.FINE, " Te laat ", 200, listOf("m1", "m2"), LocalDate.of(2026, 11, 2))
+
+        val request = server.takeRequest()
+        assertEquals("/api/groups/g1/charges", request.url.encodedPath)
+        assertEquals(
+            """{"type":"fine","description":"Te laat","amountCents":200,"memberIds":["m1","m2"],"date":"2026-11-02"}""",
+            request.body?.utf8(),
+        )
+        assertEquals(ExpenseKind.FINE, fine.kind)
+        assertEquals(400L, fine.amountCents)
+    }
+
+    @Test
+    fun `a team is created with its sport, and without a club when none was given`() = runTest {
+        backend.sessionStore.signIn(serverUrl, "t")
+        server.enqueue(json(TEAM_JSON, code = 201))
+
+        val team = backend.groups.createGroup(NewTeam(" Dames 2 ", GroupColor.ROSE, Sport.HOCKEY, club = "  ", season = "2026/27"))
+
+        assertEquals(
+            """{"name":"Dames 2","color":"rose","sport":"hockey","season":"2026/27"}""",
+            server.takeRequest().body?.utf8(),
+        )
+        assertEquals("pot", team.potMemberId)
+        assertEquals(listOf("Sanne"), team.players.map { it.name })
+        assertTrue(team.members.last().isPot)
+        assertEquals(PotStatus(cashCents = 4750, toReceiveCents = 3900, toPayCents = 4550), team.pot)
+    }
+
+    @Test
+    fun `clearing the club sends an empty text, which the server stores as none`() = runTest {
+        backend.sessionStore.signIn(serverUrl, "t")
+        server.enqueue(json(TEAM_JSON))
+
+        backend.groups.updateDetails("g1", "Dames 2", club = "", season = "2026/27")
+
+        val request = server.takeRequest()
+        assertEquals("PATCH", request.method)
+        assertEquals("""{"name":"Dames 2","club":"","season":"2026/27"}""", request.body?.utf8())
+    }
+
+    @Test
+    fun `a sport from a newer server is read as overig`() = runTest {
+        backend.sessionStore.signIn(serverUrl, "t")
+        server.enqueue(
+            json(
+                """{"groups":[{"id":"g9","name":"Schaakclub","color":"slate","sport":"schaken","club":null,"season":null,
+                   "currency":"EUR","memberCount":2,"myMemberId":"m1","myBalanceCents":0,"lastActivityAt":"2026-11-02T10:00:00.000Z"}]}""",
+            ),
+        )
+
+        val team = backend.groups.groups().single()
+
+        assertEquals(Sport.OVERIG, team.sport)
+        assertNull(team.club)
+    }
+
+    @Test
     fun `an empty answer is fine for calls that return nothing`() = runTest {
         backend.sessionStore.signIn(serverUrl, "t")
         server.enqueue(MockResponse(code = 204))
@@ -178,6 +253,19 @@ class ApiGatewayTest {
         backend.groups.leaveGroup("g1")
 
         assertEquals("/api/groups/g1/leave", server.takeRequest().url.encodedPath)
+    }
+
+    private companion object {
+        /** A team as the server answers it, trimmed to one player and the pot. */
+        const val TEAM_JSON = """{"id":"g1","name":"Dames 2","color":"rose","sport":"hockey","club":"MHC Oostpoort",
+            "season":"2026/27","currency":"EUR","inviteCode":"K7WQ2MXD","myMemberId":"m1","potMemberId":"pot",
+            "treasurerMemberId":"m1",
+            "members":[{"id":"m1","name":"Sanne","kind":"player","userId":"u1","iban":null},
+                       {"id":"pot","name":"Teamkas","kind":"pot","userId":null,"iban":null}],
+            "balances":[{"memberId":"m1","balanceCents":0,"potCents":0,"peerCents":0},
+                        {"memberId":"pot","balanceCents":0,"potCents":0,"peerCents":0}],
+            "transfers":[],"pot":{"cashCents":4750,"toReceiveCents":3900,"toPayCents":4550},
+            "fines":[{"id":"f1","name":"Te laat","amountCents":200}],"fineStats":[],"totalSpentCents":0}"""
     }
 
     private fun json(body: String, code: Int = 200) =

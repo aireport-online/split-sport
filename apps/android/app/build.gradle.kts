@@ -17,7 +17,8 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "online.aireport.split"
+        // Its own id (and link scheme), so Split and Split Sport can be installed side by side.
+        applicationId = "online.aireport.split.sport"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

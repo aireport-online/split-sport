@@ -9,14 +9,17 @@ import online.aireport.split.data.model.GroupDetail
 import online.aireport.split.data.model.ReceiptScan
 import online.aireport.split.data.model.toDomain
 
-/** A new expense: paid by you today, split equally over everyone. */
+/**
+ * A new expense: paid by you today, split equally over the team members. The Teamkas is in every
+ * list too but starts out of the split: unticked, without shares.
+ */
 fun newExpenseDraft(group: GroupDetail, today: LocalDate): ExpenseDraft {
-    val memberIds = group.members.map { it.id }
+    val playerIds = group.players.map { it.id }
     return ExpenseDraft(
         date = today,
         paidById = group.myMemberId,
-        equalMemberIds = memberIds.toSet(),
-        weights = memberIds.associateWith { 1 },
+        equalMemberIds = playerIds.toSet(),
+        weights = playerIds.associateWith { 1 },
     )
 }
 
@@ -50,6 +53,15 @@ fun expenseDraft(expense: Expense, group: GroupDetail, today: LocalDate): Expens
         )
     }
 }
+
+/**
+ * Fills the form for a ride: the cost and, when nothing was typed yet, [description]
+ * ("Rit (84 km)").
+ */
+fun ExpenseDraft.withTrip(costCents: Long, description: String): ExpenseDraft = copy(
+    amountText = formatAmountInput(costCents),
+    description = this.description.ifBlank { description },
+)
 
 /**
  * Fills the form from a scanned receipt: the lines (shared by [memberIds] until someone unticks),

@@ -12,7 +12,7 @@ import online.aireport.split.core.InviteCode
 import online.aireport.split.ui.navigation.SplitApp
 import online.aireport.split.ui.theme.SplitTheme
 
-/** The app's only activity; also the target of `split://join/<code>` links. */
+/** The app's only activity; also the target of `splitsport://join/<code>` links. */
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels {
         viewModelFactory {

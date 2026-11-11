@@ -32,10 +32,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import online.aireport.split.R
 import online.aireport.split.core.formatSignedCents
-import online.aireport.split.data.model.GroupColor
+import online.aireport.split.data.NewTeam
 import online.aireport.split.data.model.GroupSummary
 import online.aireport.split.ui.common.collectAsUiState
 import online.aireport.split.ui.common.splitViewModel
+import online.aireport.split.ui.common.teamLine
 import online.aireport.split.ui.components.BottomActionBar
 import online.aireport.split.ui.components.EmptyState
 import online.aireport.split.ui.components.ErrorState
@@ -69,7 +70,7 @@ fun GroupsRoute(onOpenGroup: (String) -> Unit, onJoinWithCode: () -> Unit, onOpe
     GroupsScreen(
         state = state,
         onOpenGroup = onOpenGroup,
-        onCreateGroup = viewModel::createGroup,
+        onCreateTeam = viewModel::createTeam,
         onJoinWithCode = onJoinWithCode,
         onOpenProfile = onOpenProfile,
         onRefresh = viewModel::refresh,
@@ -83,7 +84,7 @@ fun GroupsRoute(onOpenGroup: (String) -> Unit, onJoinWithCode: () -> Unit, onOpe
 fun GroupsScreen(
     state: GroupsUiState,
     onOpenGroup: (String) -> Unit,
-    onCreateGroup: (String, GroupColor) -> Unit,
+    onCreateTeam: (NewTeam) -> Unit,
     onJoinWithCode: () -> Unit,
     onOpenProfile: () -> Unit,
     onRefresh: () -> Unit,
@@ -91,7 +92,7 @@ fun GroupsScreen(
     onMessageShown: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    var newGroupDialogOpen by rememberSaveable { mutableStateOf(false) }
+    var newTeamSheetOpen by rememberSaveable { mutableStateOf(false) }
     MessageEffect(state.message, snackbarHostState, onMessageShown)
 
     Scaffold(
@@ -111,7 +112,7 @@ fun GroupsScreen(
             BottomActionBar {
                 PrimaryButton(
                     text = stringResource(R.string.groups_new),
-                    onClick = { newGroupDialogOpen = true },
+                    onClick = { newTeamSheetOpen = true },
                     modifier = Modifier.fillMaxWidth(),
                     loading = state.isCreating,
                 )
@@ -134,13 +135,13 @@ fun GroupsScreen(
         }
     }
 
-    if (newGroupDialogOpen) {
-        NewGroupDialog(
-            onCreate = { name, color ->
-                newGroupDialogOpen = false
-                onCreateGroup(name, color)
+    if (newTeamSheetOpen) {
+        NewTeamSheet(
+            onCreate = { team ->
+                newTeamSheetOpen = false
+                onCreateTeam(team)
             },
-            onDismiss = { newGroupDialogOpen = false },
+            onDismiss = { newTeamSheetOpen = false },
         )
     }
 }
@@ -166,7 +167,7 @@ private fun GroupList(state: GroupsUiState, onOpenGroup: (String) -> Unit, onJoi
     }
 }
 
-/** The "Jouw saldo" receipt: the balance over all groups as a large figure, and in words. */
+/** The "Jouw saldo" receipt: the balance over all teams as a large figure, and in words. */
 @Composable
 private fun TotalBalanceReceipt(totalBalanceCents: Long) {
     val sentence = ownBalanceSentence(totalBalanceCents)
@@ -190,7 +191,7 @@ private fun TotalBalanceReceipt(totalBalanceCents: Long) {
     }
 }
 
-/** One small receipt per group: the name, the number of members and your own balance. */
+/** One small receipt per team: the name, sport, club and season, the number of team members and your own balance. */
 @Composable
 private fun GroupReceipt(group: GroupSummary, onClick: () -> Unit) {
     val balanceDescription = ownBalanceSentence(group.myBalanceCents)
@@ -200,6 +201,11 @@ private fun GroupReceipt(group: GroupSummary, onClick: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             GroupName(group.name, group.color)
+            Text(
+                text = teamLine(group.sport, group.club, group.season),
+                style = MaterialTheme.typography.bodyMedium,
+                color = SplitTheme.colors.mutedInk,
+            )
             ReceiptLine(
                 name = {
                     Text(

@@ -20,7 +20,7 @@ class MainViewModel(accountRepository: AccountRepository) : ViewModel() {
 
     private val _pendingInviteCode = MutableStateFlow<String?>(null)
 
-    /** The code of a `split://join/<code>` link that has not been shown yet. */
+    /** The code of a `splitsport://join/<code>` link that has not been shown yet. */
     val pendingInviteCode: StateFlow<String?> = _pendingInviteCode.asStateFlow()
 
     fun onInviteLink(code: String) {

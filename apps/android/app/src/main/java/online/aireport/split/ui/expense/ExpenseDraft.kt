@@ -65,6 +65,9 @@ data class ExpenseDraft(
     val exactRemainingCents: Long?
         get() = amountCents?.let { total -> total - exactAmounts.values.sumOf { parseAmount(it) ?: 0L } }
 
+    /** "Gelijk" with only [potMemberId] ticked: the expense is at the pot's cost, nobody chips in. */
+    fun isChargedToPot(potMemberId: String): Boolean = mode == SplitMode.EQUAL && equalMemberIds == setOf(potMemberId)
+
     /** "Per regel": how much the typed total differs from the lines; zero when there is nothing to spread. */
     val itemsDifferenceCents: Long
         get() {

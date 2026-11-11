@@ -182,7 +182,8 @@ class ExpenseViewModel(
     private suspend fun applyScan(jpeg: ByteArray, group: GroupDetail): UiText? =
         try {
             val scan = receiptRepository.scan(jpeg)
-            _uiState.value.draft?.let { onDraftChange(it.withReceipt(scan, group.members.map { m -> m.id })) }
+            // The lines of a receipt are for the people; the pot can be ticked by hand.
+            _uiState.value.draft?.let { onDraftChange(it.withReceipt(scan, group.players.map { m -> m.id })) }
             UiText.Resource(R.string.scan_no_lines).takeIf { scan.items.none { it.amountCents > 0 } }
         } catch (e: ApiException) {
             e.toUiText()

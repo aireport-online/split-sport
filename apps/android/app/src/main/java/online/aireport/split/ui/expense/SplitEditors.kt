@@ -38,7 +38,10 @@ import online.aireport.split.ui.components.MemberLabel
 import online.aireport.split.ui.components.ReceiptPadding
 import online.aireport.split.ui.theme.SplitTheme
 
-/** "Gelijk": tick who takes part; every row shows that person's amount. */
+/**
+ * "Gelijk": tick who takes part; every row shows that person's amount. The Teamkas is in the list
+ * too; ticking only the Teamkas puts the expense at the pot's cost.
+ */
 @Composable
 fun EqualSplitEditor(
     group: GroupDetail,
@@ -76,6 +79,14 @@ fun EqualSplitEditor(
                     maxLines = 1,
                 )
             }
+        }
+        if (draft.isChargedToPot(group.potMemberId)) {
+            Text(
+                text = stringResource(R.string.split_charged_to_pot),
+                modifier = Modifier.padding(start = ReceiptPadding, end = ReceiptPadding, top = 6.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = SplitTheme.colors.mutedInk,
+            )
         }
     }
 }
