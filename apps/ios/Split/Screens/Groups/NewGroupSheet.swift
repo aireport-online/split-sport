@@ -22,11 +22,11 @@ struct NewGroupSheet: View {
                         .font(.tillSmall)
                         .foregroundStyle(Theme.mutedInk)
                     SportMenu(selection: $model.sport)
-                    PaperField(label: "Club (mag leeg blijven)", text: $model.club)
+                    PaperField(label: "Vereniging (mag leeg blijven)", text: $model.club)
                     PaperField(label: "Seizoen", text: $model.season)
                 }
                 Receipt {
-                    ReceiptTitle(text: "Kleur")
+                    ReceiptTitle(text: "Markeerstift")
                     HighlighterPicker(selection: $model.color)
                     if !model.name.isEmpty {
                         Perforation()

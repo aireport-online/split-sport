@@ -115,7 +115,7 @@ class ScreenshotTest {
     fun profile() = capture("profile") { Profile() }
 
     @Test
-    @Config(qualifiers = "w411dp-h2300dp-420dpi")
+    @Config(qualifiers = "w411dp-h1700dp-420dpi")
     fun groupSettings() = capture("group-settings") { Settings() }
 
     @Test

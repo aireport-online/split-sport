@@ -28,6 +28,13 @@ per person) and the screens are described in [`docs/design.md`](docs/design.md),
 
 ![The web app](docs/screenshots/web-team.jpg)
 
+<p>
+  <img src="docs/screenshots/android-groups.jpg" width="24%" alt="Android: teams">
+  <img src="docs/screenshots/android-group-expenses.jpg" width="24%" alt="Android: expenses, fines and contributions">
+  <img src="docs/screenshots/android-group-pot.jpg" width="24%" alt="Android: the team pot">
+  <img src="docs/screenshots/android-give-fine.jpg" width="24%" alt="Android: giving a fine">
+</p>
+
 ## Run it
 
 You need Node 22 and [pnpm](https://pnpm.io) 10.

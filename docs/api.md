@@ -21,7 +21,7 @@ User         { id, name, email, iban: string | null }
 Member       { id, name, kind: "player" | "pot",                         // "pot" = the team pot, one per team
                userId: string | null, iban: string | null }              // userId null = added by name, no account
 GroupSummary { id, name, color, sport, club: string | null, season: string | null, currency,
-               memberCount,                                              // team members, the pot not counted
+               memberCount,                                              // team members, the pot not counted (also in an invite)
                myMemberId, myBalanceCents, lastActivityAt }
 GroupDetail  { id, name, color, sport, club, season, currency, inviteCode, myMemberId,
                potMemberId,                                              // the pot; also the last entry of members
@@ -118,7 +118,7 @@ To edit an expense, rebuild the split from the stored expense:
 | GET | `/groups/:id/expenses/:expenseId` | – | `Expense` |
 | PUT | `/groups/:id/expenses/:expenseId` | same as POST | `Expense` |
 | DELETE | `/groups/:id/expenses/:expenseId` | – | 204 (also deletes a settlement) |
-| POST | `/groups/:id/charges` | `{ type: "fine" \| "contribution", description, amountCents, memberIds, date? }` (`amountCents` is per member) | 201 `Expense` with that `kind`, paid by the pot |
+| POST | `/groups/:id/charges` | `{ type: "fine" \| "contribution", description, amountCents, memberIds, date? }` (`amountCents` is per member; the total may not exceed € 999.999,99) | 201 `Expense` with that `kind`, paid by the pot |
 | POST | `/groups/:id/settlements` | `{ fromMemberId, toMemberId, amountCents, date? }` | 201 `Expense` with `kind: "settlement"` |
 | POST | `/receipts/scan` | `{ imageBase64, mediaType }` | `{ merchant, date, totalCents, items: {name, amountCents}[] }` |
 

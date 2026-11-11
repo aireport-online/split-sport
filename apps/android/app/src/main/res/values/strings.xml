@@ -8,7 +8,7 @@
     <string name="action_ok">OK</string>
     <string name="action_cancel">Annuleren</string>
     <string name="action_back">Terug</string>
-    <string name="action_create">Aanmaken</string>
+    <string name="action_create">Team maken</string>
     <string name="action_save">Opslaan</string>
     <string name="action_delete">Verwijderen</string>
     <string name="action_close">Sluiten</string>
@@ -34,7 +34,7 @@
     <string name="field_item_name">Regel</string>
     <string name="field_iban">IBAN</string>
     <string name="field_sport">Sport</string>
-    <string name="field_club">Club</string>
+    <string name="field_club">Vereniging</string>
     <string name="field_season">Seizoen</string>
     <string name="field_optional">Niet verplicht.</string>
 
@@ -209,7 +209,7 @@
     <!-- Team settings -->
     <string name="settings_title">Teaminstellingen</string>
     <string name="settings_team">Team</string>
-    <string name="settings_color">Kleur</string>
+    <string name="settings_color">Markeerstift</string>
     <string name="settings_members">Teamleden</string>
     <string name="settings_add_member">Teamlid toevoegen</string>
     <string name="settings_rename_member">Naam wijzigen</string>

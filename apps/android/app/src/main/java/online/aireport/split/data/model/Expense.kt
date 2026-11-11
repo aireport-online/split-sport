@@ -1,5 +1,6 @@
 package online.aireport.split.data.model
 
+import androidx.annotation.Keep
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -87,6 +88,11 @@ data class SettlementRequest(
     val date: String,
 )
 
+/**
+ * Kept by name: it is an argument of a navigation route, and Navigation finds an enum argument
+ * by its class name at run time.
+ */
+@Keep
 @Serializable
 enum class ChargeType {
     @SerialName("fine") FINE,

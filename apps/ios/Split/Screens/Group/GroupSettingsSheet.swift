@@ -22,7 +22,7 @@ struct GroupSettingsSheet: View {
             Desk {
                 teamReceipt
                 Receipt {
-                    ReceiptTitle(text: "Kleur")
+                    ReceiptTitle(text: "Markeerstift")
                     HighlighterPicker(selection: colorBinding)
                 }
                 potReceipt
@@ -74,7 +74,7 @@ struct GroupSettingsSheet: View {
         Receipt {
             PaperField(label: "Naam", text: $model.name)
             SportMenu(selection: sportBinding)
-            PaperField(label: "Club (mag leeg blijven)", text: $model.club)
+            PaperField(label: "Vereniging (mag leeg blijven)", text: $model.club)
             PaperField(label: "Seizoen", text: $model.season)
             Button("Opslaan") {
                 Task { await model.saveDetails() }
