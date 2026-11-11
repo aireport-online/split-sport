@@ -40,7 +40,7 @@ export function SettlementDialog({
     mutationFn: async () => {
       const amountCents = parseAmount(amount);
       if (amountCents === null || amountCents <= 0) throw new Error("Vul een geldig bedrag in.");
-      if (from === to) throw new Error("Kies twee verschillende leden.");
+      if (from === to) throw new Error("Kies twee verschillende teamleden.");
       await api.createSettlement(group.id, { fromMemberId: from, toMemberId: to, amountCents, date });
     },
     onSuccess: async () => {

@@ -1,11 +1,11 @@
-import { GROUP_COLORS, type GroupColor } from "@split/core";
+import { GROUP_COLORS, SPORTS, SPORT_LABELS, seasonOf, type GroupColor, type Sport } from "@split/core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Balance, Button, Dialog, Empty, ErrorBanner, Field, GroupName, Leader, SkeletonRows } from "../components/ui";
 import { api, errorMessage } from "../lib/api";
-import { money, myBalanceSentence, signedMoney } from "../lib/format";
+import { money, myBalanceSentence, signedMoney, teamLine, teamMembers } from "../lib/format";
 import { applyGroup, useGroups } from "../lib/queries";
 
 export function GroupsScreen() {
@@ -21,11 +21,11 @@ export function GroupsScreen() {
     <>
       <header className="page-header">
         <div className="page-header__title">
-          <h1>Groepen</h1>
+          <h1>Teams</h1>
         </div>
         <div className="page-header__actions">
           <Button variant="primary" onClick={() => setCreating(true)}>
-            <Plus size={18} /> Nieuwe groep
+            <Plus size={18} /> Nieuw team
           </Button>
         </div>
       </header>
@@ -53,7 +53,7 @@ export function GroupsScreen() {
           </div>
         </section>
 
-        <section className="overview__list" aria-label="Je groepen">
+        <section className="overview__list" aria-label="Je teams">
           {groups.isPending && (
             <div className="card">
               <SkeletonRows />
@@ -68,9 +68,9 @@ export function GroupsScreen() {
           )}
           {groups.isSuccess && list.length === 0 && (
             <div className="card">
-              <Empty title="Nog geen groepen" text="Maak er een voor je huis, vakantie of etentje.">
+              <Empty title="Nog geen teams" text="Maak er een voor je elftal, zevental of trainingsgroep.">
                 <Button variant="primary" onClick={() => setCreating(true)}>
-                  Nieuwe groep
+                  Nieuw team
                 </Button>
               </Empty>
             </div>
@@ -80,10 +80,9 @@ export function GroupsScreen() {
               <span className="group-receipt__name">
                 <GroupName name={group.name} color={group.color} />
               </span>
+              <span className="group-receipt__sport">{teamLine(group)}</span>
               <span className="line" style={{ marginTop: 6 }}>
-                <span className="muted">
-                  {group.memberCount} {group.memberCount === 1 ? "lid" : "leden"}
-                </span>
+                <span className="muted">{teamMembers(group.memberCount)}</span>
                 <Leader />
                 <span className="line__amount">
                   <Balance cents={group.myBalanceCents} euro />
@@ -142,10 +141,13 @@ function NewGroupDialog({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
+  const [sport, setSport] = useState<Sport>("voetbal");
+  const [club, setClub] = useState("");
+  const [season, setSeason] = useState(() => seasonOf(new Date()));
   const [color, setColor] = useState<GroupColor | undefined>();
 
   const create = useMutation({
-    mutationFn: () => api.createGroup({ name, color }),
+    mutationFn: () => api.createGroup({ name, color, sport, club, season }),
     onSuccess: (group) => {
       applyGroup(queryClient, group);
       navigate(`/groups/${group.id}`);
@@ -154,7 +156,7 @@ function NewGroupDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog
-      title="Nieuwe groep"
+      title="Nieuw team"
       narrow
       onClose={onClose}
       onSubmit={() => create.mutate()}
@@ -163,14 +165,15 @@ function NewGroupDialog({ onClose }: { onClose: () => void }) {
           <span className="spacer" />
           <Button onClick={onClose}>Annuleren</Button>
           <Button variant="primary" type="submit" disabled={create.isPending || name.trim() === ""}>
-            Groep maken
+            Team maken
           </Button>
         </>
       }
     >
-      <Field label="Naam" hint="Bijvoorbeeld: Huis, Weekend Texel of Vrijdagborrel.">
+      <Field label="Naam" hint="Bijvoorbeeld: Heren 3, Dames 1 of JO13-2.">
         <input className="input" value={name} onChange={(event) => setName(event.target.value)} maxLength={60} autoFocus />
       </Field>
+      <TeamFields sport={sport} club={club} season={season} onSport={setSport} onClub={setClub} onSeason={setSeason} />
       <div className="field">
         <span className="field__label">Markeerstift</span>
         <ColorPicker value={color} onChange={setColor} />
@@ -195,7 +198,51 @@ const COLOR_NAMES: Record<GroupColor, string> = {
   slate: "Grijs",
 };
 
-/** Pick one of the eight highlighters for a group. */
+/** Sport, club and season of a team; shared by the new-team dialog and the team settings. */
+export function TeamFields(props: {
+  sport: Sport;
+  club: string;
+  season: string;
+  onSport: (sport: Sport) => void;
+  onClub: (club: string) => void;
+  onSeason: (season: string) => void;
+}) {
+  return (
+    <>
+      <Field label="Sport">
+        <select className="select" value={props.sport} onChange={(event) => props.onSport(event.target.value as Sport)}>
+          {SPORTS.map((sport) => (
+            <option key={sport} value={sport}>
+              {SPORT_LABELS[sport]}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <div className="field-row" style={{ marginTop: 18 }}>
+        <Field label="Vereniging">
+          <input
+            className="input"
+            value={props.club}
+            onChange={(event) => props.onClub(event.target.value)}
+            placeholder="Optioneel"
+            maxLength={60}
+          />
+        </Field>
+        <Field label="Seizoen">
+          <input
+            className="input"
+            value={props.season}
+            onChange={(event) => props.onSeason(event.target.value)}
+            placeholder="2026/27"
+            maxLength={20}
+          />
+        </Field>
+      </div>
+    </>
+  );
+}
+
+/** Pick one of the eight highlighters for a team. */
 export function ColorPicker({
   value,
   onChange,

@@ -23,7 +23,7 @@ export function Shell() {
         <Button variant="ghost" icon aria-label="Menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}>
           <Menu size={22} />
         </Button>
-        <Link to="/" aria-label="Split, naar je groepen">
+        <Link to="/" aria-label="Split Sport, naar je teams">
           <Wordmark size="small" />
         </Link>
       </header>
@@ -34,14 +34,14 @@ export function Shell() {
             <X size={22} />
           </Button>
         </div>
-        <Link to="/" aria-label="Split, naar je groepen">
+        <Link to="/" aria-label="Split Sport, naar je teams">
           <Wordmark />
         </Link>
         <nav className="nav" aria-label="Hoofdmenu">
           <NavLink to="/" end className={navClass}>
-            <span className="nav-item__text">Groepen</span>
+            <span className="nav-item__text">Teams</span>
           </NavLink>
-          {groups.data && groups.data.length > 0 && <p className="nav__label">Je groepen</p>}
+          {groups.data && groups.data.length > 0 && <p className="nav__label">Je teams</p>}
           {groups.data?.map((group) => (
             <NavLink key={group.id} to={`/groups/${group.id}`} className={groupClass}>
               <span className="nav-item__text">{group.name}</span>

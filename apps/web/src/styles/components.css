@@ -162,6 +162,14 @@ button.row:hover {
   transform: translateY(-3px);
 }
 
+/* A few names next to each other on one receipt line. */
+.line__people {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
 .line__amount {
   flex-shrink: 0;
   white-space: nowrap;
@@ -238,6 +246,27 @@ button.row:hover {
   white-space: nowrap;
 }
 
+/* The team pot is not a person: no highlighter, but a label printed in ink. */
+.pot-label {
+  position: relative;
+  display: inline-block;
+  padding: 0 6px;
+  color: var(--on-ink);
+  white-space: nowrap;
+  isolation: isolate;
+}
+
+.pot-label::before {
+  position: absolute;
+  inset: 0.06em 0 0.02em;
+  z-index: -1;
+  border-radius: 2px;
+  background: var(--ink);
+  content: "";
+  filter: url(#marker-edge);
+  transform: rotate(-0.8deg);
+}
+
 .stamp {
   display: inline-block;
   padding: 0 7px;
@@ -252,6 +281,11 @@ button.row:hover {
   text-transform: uppercase;
   opacity: 0.9;
   transform: rotate(-8deg);
+}
+
+.stamp--ink {
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 /* ---- money ------------------------------------------------------------- */
@@ -444,6 +478,17 @@ button.row:hover {
 
 .chip--plain[aria-pressed="true"] {
   color: var(--on-ink);
+}
+
+.chip--fine {
+  gap: 8px;
+  border-radius: var(--radius);
+}
+
+.chip__amount {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .chips {

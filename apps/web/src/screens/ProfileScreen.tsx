@@ -43,7 +43,8 @@ export function ProfileScreen() {
         <div>
           <h2 className="settings-section__title">Jouw gegevens</h2>
           <p className="settings-section__text">
-            Je naam zien de anderen in je groepen. Vul je IBAN in zodat anderen weten waar ze kunnen betalen.
+            Je naam zien je teamgenoten. Vul je IBAN in zodat teamgenoten weten waar ze kunnen betalen; ben je
+            penningmeester, dan gaat de inleg daarheen.
           </p>
         </div>
         <form
@@ -59,7 +60,7 @@ export function ProfileScreen() {
           <Field label="E-mailadres">
             <input className="input" value={user.email} readOnly />
           </Field>
-          <Field label="IBAN" hint="Optioneel. Alleen zichtbaar voor leden van je groepen.">
+          <Field label="IBAN" hint="Optioneel. Alleen zichtbaar voor je teamgenoten.">
             <input
               className="input"
               value={iban}
@@ -86,7 +87,7 @@ export function ProfileScreen() {
       <section className="settings-section">
         <div>
           <h2 className="settings-section__title">Uitloggen</h2>
-          <p className="settings-section__text">Op dit apparaat. Je groepen en uitgaven blijven bewaard.</p>
+          <p className="settings-section__text">Op dit apparaat. Je teams en uitgaven blijven bewaard.</p>
         </div>
         <div className="panel">
           <Button onClick={() => void signOut()}>Uitloggen</Button>
@@ -97,7 +98,7 @@ export function ProfileScreen() {
         <div>
           <h2 className="settings-section__title">Account verwijderen</h2>
           <p className="settings-section__text">
-            Je account en je inloggegevens worden gewist. In groepen waar je uitgaven hebt blijft alleen je naam staan,
+            Je account en je inloggegevens worden gewist. In teams waar je uitgaven hebt blijft alleen je naam staan,
             zodat de saldo's van de anderen kloppen.
           </p>
         </div>
