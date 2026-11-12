@@ -1,7 +1,14 @@
 # Split Sport
 
+## About this publication
+
+This source code accompanies the AI Report masterclass on building software with AI.
+You can study, run, fork and adapt the project under the [MIT license](LICENSE).
+It is a masterclass example project; no hosted service or ongoing maintenance is offered.
+
 The team pot, contributions, fines and shared expenses of a sports team, on one receipt. Split Sport
-is a fork of [Split](https://github.com/aireport-online/split) for sports clubs:
+is adapted from Split for sports clubs. The original Split repository is not included
+in this public selection; this repository contains the source needed for this version:
 
 - **Teams** with a sport, a club and a season, instead of loose groups.
 - **Teamkas**: every team has a pot with a treasurer (penningmeester). The app shows what is really
